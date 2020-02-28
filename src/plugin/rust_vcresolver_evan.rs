@@ -28,6 +28,22 @@ impl RustVcResolverEvan {
 
 #[async_trait]
 impl VcResolver for RustVcResolverEvan {
+    /// Checks given Vc document.
+    /// A Vc document is considered as valid if returning ().
+    /// Resolver may throw to indicate
+    /// - that it is not responsible for this Vc
+    /// - that it considers this Vc as invalid
+    /// 
+    /// Currently the test `vc_id` `"test"` is accepted as valid.
+    ///
+    /// # Arguments
+    ///
+    /// * `vc_id` - vc_id to check document for
+    /// * `value` - value to check
+    async fn check_vc(&self, _vc_id: &str, _value: &str) -> Result<(), Box<dyn std::error::Error>> {
+        unimplemented!();
+    }
+
     /// Gets document for given vc name.
     ///
     /// # Arguments

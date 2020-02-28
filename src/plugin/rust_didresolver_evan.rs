@@ -17,6 +17,22 @@ impl RustDidResolverEvan {
 
 #[async_trait]
 impl DidResolver for RustDidResolverEvan {
+    /// Checks given DID document.
+    /// A DID document is considered as valid if returning ().
+    /// Resolver may throw to indicate
+    /// - that it is not responsible for this DID
+    /// - that it considers this DID as invalid
+    /// 
+    /// Currently the test `did_name` `"test"` is accepted as valid.
+    ///
+    /// # Arguments
+    ///
+    /// * `did_name` - did_name to check document for
+    /// * `value` - value to check
+    async fn check_did(&self, _did_name: &str, _value: &str) -> Result<(), Box<dyn std::error::Error>> {
+        unimplemented!();
+    }
+
     /// Gets document for given did name.
     ///
     /// # Arguments
