@@ -1,12 +1,41 @@
 extern crate secp256k1;
 extern crate sha3;
+extern crate ssi;
 extern crate ssi_evan;
 
 use serde_json::Value;
-use ssi_evan::plugin::rust_vcresolver_evan::RustVcResolverEvan;
 use ssi::library::Library;
 use ssi::library::traits::DidResolver;
 use ssi::plugin::rust_storage_cache::RustStorageCache;
+use ssi_evan::plugin::rust_vcresolver_evan::RustVcResolverEvan;
+
+const EXAMPLE_VC_NAME_REMOTE: &str = "vc:evan:testcore:0x6e90a3e2bf3823e52eceb0f81373eb58b1a0a238965f0d4388ab9ce9ceeddfd3";
+const EXAMPLE_VC_DOCUMENT_STR_REMOTE: &str = r###"
+{ "@context": [ "https://www.w3.org/2018/credentials/v1" ],
+  "credentialStatus":
+   { "id":
+      "https://testcore.evan.network/vc/vc:evan:testcore:0x6e90a3e2bf3823e52eceb0f81373eb58b1a0a238965f0d4388ab9ce9ceeddfd3",
+     "type": "evan:evanCredential" },
+  "credentialSubject":
+   { "data": [ { "name": "isTrustedSupplier", "value": "true" } ],
+     "id":
+      "did:evan:testcore:0x67ce8b01b3b75a9ba4a1462139a1edaa0d2f539f" },
+  "id":
+   "vc:evan:testcore:0x6e90a3e2bf3823e52eceb0f81373eb58b1a0a238965f0d4388ab9ce9ceeddfd3",
+  "issuer":
+   { "id":
+      "did:evan:testcore:0x96da854df34f5dcd25793b75e170b3d8c63a95ad" },
+  "proof":
+   { "created": "2020-02-25T09:48:58.451Z",
+     "jws":
+      "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NkstUiJ9.eyJpYXQiOjE1ODI2MjQxMzgsInZjIjp7IkBjb250ZXh0IjpbImh0dHBzOi8vd3d3LnczLm9yZy8yMDE4L2NyZWRlbnRpYWxzL3YxIl0sInR5cGUiOlsiVmVyaWZpYWJsZUNyZWRlbnRpYWwiXSwiaXNzdWVyIjp7ImlkIjoiZGlkOmV2YW46dGVzdGNvcmU6MHg5NmRhODU0ZGYzNGY1ZGNkMjU3OTNiNzVlMTcwYjNkOGM2M2E5NWFkIn0sImNyZWRlbnRpYWxTdWJqZWN0Ijp7ImlkIjoiZGlkOmV2YW46dGVzdGNvcmU6MHg2N2NlOGIwMWIzYjc1YTliYTRhMTQ2MjEzOWExZWRhYTBkMmY1MzlmIiwiZGF0YSI6W3sibmFtZSI6ImlzVHJ1c3RlZFN1cHBsaWVyIiwidmFsdWUiOiJ0cnVlIn1dfSwidmFsaWRGcm9tIjoiMjAyMC0wMi0yNVQwOTo0ODo1Ny42NjBaIiwiaWQiOiJ2YzpldmFuOnRlc3Rjb3JlOjB4NmU5MGEzZTJiZjM4MjNlNTJlY2ViMGY4MTM3M2ViNThiMWEwYTIzODk2NWYwZDQzODhhYjljZTljZWVkZGZkMyIsImNyZWRlbnRpYWxTdGF0dXMiOnsiaWQiOiJodHRwczovL3Rlc3Rjb3JlLmV2YW4ubmV0d29yay92Yy92YzpldmFuOnRlc3Rjb3JlOjB4NmU5MGEzZTJiZjM4MjNlNTJlY2ViMGY4MTM3M2ViNThiMWEwYTIzODk2NWYwZDQzODhhYjljZTljZWVkZGZkMyIsInR5cGUiOiJldmFuOmV2YW5DcmVkZW50aWFsIn19LCJpc3MiOiJkaWQ6ZXZhbjp0ZXN0Y29yZToweDk2ZGE4NTRkZjM0ZjVkY2QyNTc5M2I3NWUxNzBiM2Q4YzYzYTk1YWQifQ.IC8Zb8a1o3OVRh113DX8OSlZuan8jBo_jOWrD_cxovKZs374KKiSTqZD1Uo-Y4jxxCS3dp845nKKeEtPUO6OQQE",
+     "proofPurpose": "assertionMethod",
+     "type": "EcdsaPublicKeySecp256k1",
+     "verificationMethod":
+      "did:evan:testcore:0x96da854df34f5dcd25793b75e170b3d8c63a95ad#key-1" },
+  "type": [ "VerifiableCredential" ],
+  "validFrom": "2020-02-25T09:48:57.660Z" }
+"###;
 
 const EXAMPLE_VC_NAME: &str = "vc:evan:testcore:0x8b078ee6cfb208dca52bf89ab7178e0f11323f4363c1a6ad18321275e6d07fcb";
 const EXAMPLE_VC_DOCUMENT_STR: &str = r###"
@@ -84,9 +113,12 @@ async fn can_fetch_a_vc_document() {
     let mut library = Library::new();
     library.register_vc_resolver(Box::from(rde));
 
-    let vc = library.get_vc_document(&EXAMPLE_VC_NAME).await.unwrap();
+    let vc = library.get_vc_document(&EXAMPLE_VC_NAME_REMOTE).await.unwrap();
     let parsed: Value = serde_json::from_str(&vc).unwrap();
-    assert!(&EXAMPLE_VC_NAME == &parsed["id"]);
+    assert!(&EXAMPLE_VC_NAME_REMOTE == &parsed["id"]);
+
+    let parsed_example: Value = serde_json::from_str(&EXAMPLE_VC_DOCUMENT_STR_REMOTE).unwrap();
+    assert!(parsed_example == parsed);
 }
 
 #[tokio::test]
