@@ -1,6 +1,6 @@
 use reqwest;
 use async_trait::async_trait;
-use ssi::library::traits::{ DidResolver };
+use vade::traits::{ DidResolver };
 use serde_json::Value;
 use simple_error::SimpleError;
 

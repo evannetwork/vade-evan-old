@@ -1,13 +1,13 @@
 extern crate secp256k1;
 extern crate sha3;
-extern crate ssi;
-extern crate ssi_evan;
+extern crate vade;
+extern crate vade_evan;
 
 use serde_json::Value;
-use ssi::library::Library;
-use ssi::library::traits::DidResolver;
-use ssi::plugin::rust_storage_cache::RustStorageCache;
-use ssi_evan::plugin::rust_vcresolver_evan::RustVcResolverEvan;
+use vade::Vade;
+use vade::traits::DidResolver;
+use vade::plugin::rust_storage_cache::RustStorageCache;
+use vade_evan::plugin::rust_vcresolver_evan::RustVcResolverEvan;
 
 const EXAMPLE_VC_NAME_REMOTE: &str = "vc:evan:testcore:0x6e90a3e2bf3823e52eceb0f81373eb58b1a0a238965f0d4388ab9ce9ceeddfd3";
 const EXAMPLE_VC_DOCUMENT_STR_REMOTE: &str = r###"
@@ -110,10 +110,10 @@ const EXAMPLE_DID_DOCUMENT_STR: &str = r###"
 #[tokio::test]
 async fn can_fetch_a_vc_document() {
     let rde = RustVcResolverEvan::new();
-    let mut library = Library::new();
-    library.register_vc_resolver(Box::from(rde));
+    let mut vade = Vade::new();
+    vade.register_vc_resolver(Box::from(rde));
 
-    let vc = library.get_vc_document(&EXAMPLE_VC_NAME_REMOTE).await.unwrap();
+    let vc = vade.get_vc_document(&EXAMPLE_VC_NAME_REMOTE).await.unwrap();
     let parsed: Value = serde_json::from_str(&vc).unwrap();
     assert!(&EXAMPLE_VC_NAME_REMOTE == &parsed["id"]);
 
@@ -124,11 +124,11 @@ async fn can_fetch_a_vc_document() {
 #[tokio::test]
 async fn returns_an_error_for_invalid_vc_ids() {
     let rde = RustVcResolverEvan::new();
-    let mut library = Library::new();
-    library.register_vc_resolver(Box::from(rde));
+    let mut vade = Vade::new();
+    vade.register_vc_resolver(Box::from(rde));
 
     let vc_name = "vc:evan:testcore:invalid";
-    let vc_result = library.get_vc_document(&vc_name).await;
+    let vc_result = vade.get_vc_document(&vc_name).await;
     match vc_result {
         Ok(_vc) => panic!("unexpected vc document"),
         Err(e) => assert!(format!("{}", e) == "could not get vc document"),
@@ -138,9 +138,9 @@ async fn returns_an_error_for_invalid_vc_ids() {
 // race
 #[tokio::test]
 async fn can_handle_racing_resolvers_1() {
-    let mut library = Library::new();
+    let mut vade = Vade::new();
     let rde = RustVcResolverEvan::new();
-    library.register_vc_resolver(Box::from(rde));
+    vade.register_vc_resolver(Box::from(rde));
     let mut storage = RustStorageCache::new();
 
     match storage.set(EXAMPLE_VC_NAME, EXAMPLE_VC_DOCUMENT_STR).await {
@@ -148,16 +148,16 @@ async fn can_handle_racing_resolvers_1() {
         Err(e) => panic!(format!("{}", e)),
     };
 
-    library.register_vc_resolver(Box::from(storage));
-    let vc = library.get_vc_document(&EXAMPLE_VC_NAME).await.unwrap();
+    vade.register_vc_resolver(Box::from(storage));
+    let vc = vade.get_vc_document(&EXAMPLE_VC_NAME).await.unwrap();
     assert!(vc == EXAMPLE_VC_DOCUMENT_STR);
 }
 
 #[tokio::test]
 async fn can_handle_racing_resolvers_2() {
-    let mut library = Library::new();
+    let mut vade = Vade::new();
     let rde = RustVcResolverEvan::new();
-    library.register_vc_resolver(Box::from(rde));
+    vade.register_vc_resolver(Box::from(rde));
     let mut storage = RustStorageCache::new();
 
     match storage.set(EXAMPLE_VC_NAME, "qwer").await {
@@ -165,7 +165,7 @@ async fn can_handle_racing_resolvers_2() {
         Err(e) => panic!(format!("{}", e)),
     };
 
-    let vc_result = library.get_vc_document("something different").await;
+    let vc_result = vade.get_vc_document("something different").await;
     match vc_result {
         Ok(_vc) => panic!("unexpected vc document"),
         Err(e) => assert!(format!("{}", e) == "could not get vc document"),
@@ -176,7 +176,7 @@ async fn can_handle_racing_resolvers_2() {
 // currently diabled as `RustVcResolverEvan` does not implement `set_did_document` atm
 // #[tokio::test]
 async fn can_handle_racing_resolvers_3() {
-    let mut library = Library::new();
+    let mut vade = Vade::new();
 
     let mut rde = RustVcResolverEvan::new();
     let mut rde_did_resolver = RustStorageCache::new();
@@ -184,20 +184,20 @@ async fn can_handle_racing_resolvers_3() {
         Ok(()) => (),
         Err(e) => panic!(format!("{}", e)),
     };
-    let mut rde_library = Library::new();
-    rde_library.register_did_resolver(Box::from(rde_did_resolver));
-    rde.library = Some(Box::from(rde_library));
-    library.register_vc_resolver(Box::from(rde));
+    let mut rde_vade = Vade::new();
+    rde_vade.register_did_resolver(Box::from(rde_did_resolver));
+    rde.vade = Some(Box::from(rde_vade));
+    vade.register_vc_resolver(Box::from(rde));
 
     let storage = RustStorageCache::new();
 
-    match library.set_did_document(EXAMPLE_VC_NAME, EXAMPLE_VC_DOCUMENT_STR).await {
+    match vade.set_did_document(EXAMPLE_VC_NAME, EXAMPLE_VC_DOCUMENT_STR).await {
         Ok(()) => (),
         Err(e) => panic!(format!("{}", e)),
     };
 
-    library.register_vc_resolver(Box::from(storage));
-    let vc = library.get_vc_document(&EXAMPLE_VC_NAME).await.unwrap();
+    vade.register_vc_resolver(Box::from(storage));
+    let vc = vade.get_vc_document(&EXAMPLE_VC_NAME).await.unwrap();
     println!("{:?}", &vc);
     println!("{:?}", &EXAMPLE_VC_DOCUMENT_STR);
     assert!(vc == EXAMPLE_VC_DOCUMENT_STR);
@@ -205,21 +205,21 @@ async fn can_handle_racing_resolvers_3() {
 
 #[tokio::test]
 async fn can_validate_valid_vcs() -> std::result::Result<(), Box<dyn std::error::Error>> {
-    // create a vc resolver with attached did resolver in a library
+    // create a vc resolver with attached did resolver in a vade
     let vcr_didr = RustStorageCache::new();
-    let mut vcr_library = Library::new();
-    vcr_library.register_did_resolver(Box::from(vcr_didr));
+    let mut vcr_vade = Vade::new();
+    vcr_vade.register_did_resolver(Box::from(vcr_didr));
     // add did document to vcr's did resolver
-    vcr_library.set_did_document(EXAMPLE_DID, EXAMPLE_DID_DOCUMENT_STR).await?;
+    vcr_vade.set_did_document(EXAMPLE_DID, EXAMPLE_DID_DOCUMENT_STR).await?;
     let mut vcr = RustVcResolverEvan::new();
-    vcr.library = Some(Box::from(vcr_library));
+    vcr.vade = Some(Box::from(vcr_vade));
 
-    // create library to work with, attach 
-    let mut library = Library::new();
-    library.register_vc_resolver(Box::from(vcr));
+    // create vade to work with, attach 
+    let mut vade = Vade::new();
+    vade.register_vc_resolver(Box::from(vcr));
 
     // test VC document
-    let vc_result = library.check_vc(EXAMPLE_VC_NAME, EXAMPLE_VC_DOCUMENT_STR).await;
+    let vc_result = vade.check_vc(EXAMPLE_VC_NAME, EXAMPLE_VC_DOCUMENT_STR).await;
     match vc_result {
         Ok(_) => (),
         Err(e) => panic!(format!("{}", e)),
@@ -230,21 +230,21 @@ async fn can_validate_valid_vcs() -> std::result::Result<(), Box<dyn std::error:
 
 #[tokio::test]
 async fn cannot_validate_invalid_vcs() -> std::result::Result<(), Box<dyn std::error::Error>> {
-    // create a vc resolver with attached did resolver in a library
+    // create a vc resolver with attached did resolver in a vade
     let vcr_didr = RustStorageCache::new();
-    let mut vcr_library = Library::new();
-    vcr_library.register_did_resolver(Box::from(vcr_didr));
+    let mut vcr_vade = Vade::new();
+    vcr_vade.register_did_resolver(Box::from(vcr_didr));
     // add did document to vcr's did resolver
-    vcr_library.set_did_document(EXAMPLE_DID, EXAMPLE_DID_DOCUMENT_STR).await?;
+    vcr_vade.set_did_document(EXAMPLE_DID, EXAMPLE_DID_DOCUMENT_STR).await?;
     let mut vcr = RustVcResolverEvan::new();
-    vcr.library = Some(Box::from(vcr_library));
+    vcr.vade = Some(Box::from(vcr_vade));
 
-    // create library to work with, attach 
-    let mut library = Library::new();
-    library.register_vc_resolver(Box::from(vcr));
+    // create vade to work with, attach 
+    let mut vade = Vade::new();
+    vade.register_vc_resolver(Box::from(vcr));
 
     // test invalid VC document
-    let vc_result = library.check_vc(EXAMPLE_VC_NAME, EXAMPLE_VC_DOCUMENT_MANIPULATED_STR).await;
+    let vc_result = vade.check_vc(EXAMPLE_VC_NAME, EXAMPLE_VC_DOCUMENT_MANIPULATED_STR).await;
     match vc_result {
         Ok(_) => panic!("manipulated VC document recocnized as valid"),
         Err(_) => (),

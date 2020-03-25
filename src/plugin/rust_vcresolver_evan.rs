@@ -8,8 +8,8 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use sha3::Keccak256;
 use simple_error::SimpleError;
-use ssi::library::traits::VcResolver;
-use ssi::library::Library;
+use vade::traits::VcResolver;
+use vade::Vade;
 use std::str;
 
 const JWT_REGEX: &'static str = r#"^\{"iat":[^,]+,"vc":(.*),"iss":"[^"]+?"\}$"#;
@@ -41,7 +41,7 @@ struct EvanDidPublicKey {
 
 /// Resolver for DIDs on evan.network (currently on testnet)
 pub struct RustVcResolverEvan {
-    pub library: Option<Box<Library>>,
+    pub vade: Option<Box<Vade>>,
 }
 
 impl RustVcResolverEvan {
@@ -51,7 +51,7 @@ impl RustVcResolverEvan {
             Ok(_) | Err(_) => (),
         };
         RustVcResolverEvan {
-            library: None,
+            vade: None,
         }
     }
 
@@ -66,14 +66,14 @@ impl RustVcResolverEvan {
         unimplemented!();
     }
 
-    /// Gets all keys from given DID. `self.library` will be queried for DID, then public keys are checked for keys.
+    /// Gets all keys from given DID. `self.vade` will be queried for DID, then public keys are checked for keys.
     /// # Arguments
     /// 
     /// * `key_from_did` - key reference to a DID document like "$DID#key-1"
     async fn get_key_from_did(&self, key_from_did: &str) -> Result<String, Box<dyn std::error::Error>> {
         let did = key_from_did.splitn(2, '#').next().unwrap();
         debug!("getting keys for did {:?}", &did);
-        let did_document_string = self.library.as_ref().unwrap().get_did_document(did).await.unwrap();
+        let did_document_string = self.vade.as_ref().unwrap().get_did_document(did).await.unwrap();
         let did_document: EvanDid = serde_json::from_str(&did_document_string)?;
 
         let key_objects: Vec<EvanDidPublicKey> = did_document.publicKey;
@@ -191,7 +191,7 @@ impl VcResolver for RustVcResolverEvan {
 
 
 /// Fetches revokation status for VCs. VCs can be active or revoked (-> true/false)
-/// missing VC documents or other errors are indicated as Errors.
+/// mivadeng VC documents or other errors are indicated as Errors.
 ///
 /// # Arguments
 ///

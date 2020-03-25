@@ -1,8 +1,8 @@
-extern crate ssi_evan;
+extern crate vade_evan;
 
-use ssi::library::Library;
-use ssi::plugin::rust_storage_cache::RustStorageCache;
-use ssi_evan::plugin::rust_didresolver_evan::RustDidResolverEvan;
+use vade::Vade;
+use vade::plugin::rust_storage_cache::RustStorageCache;
+use vade_evan::plugin::rust_didresolver_evan::RustDidResolverEvan;
 use serde_json::Value;
 
 const EXAMPLE_DID: &str = "did:evan:testcore:0x96da854df34f5dcd25793b75e170b3d8c63a95ad";
@@ -55,10 +55,10 @@ const EXAMPLE_DID_DOCUMENT_STR: &str = r###"
 #[tokio::test]
 async fn can_fetch_a_did_document() {
     let rde = RustDidResolverEvan::new();
-    let mut library = Library::new();
-    library.register_did_resolver(Box::from(rde));
+    let mut vade = Vade::new();
+    vade.register_did_resolver(Box::from(rde));
 
-    let did = library.get_did_document(&EXAMPLE_DID).await.unwrap();
+    let did = vade.get_did_document(&EXAMPLE_DID).await.unwrap();
     let parsed: Value = serde_json::from_str(&did).unwrap();
     assert!(&EXAMPLE_DID == &parsed["id"]);
 }
@@ -66,11 +66,11 @@ async fn can_fetch_a_did_document() {
 #[tokio::test]
 async fn returns_an_error_for_invalid_did_ids() {
     let rde = RustDidResolverEvan::new();
-    let mut library = Library::new();
-    library.register_did_resolver(Box::from(rde));
+    let mut vade = Vade::new();
+    vade.register_did_resolver(Box::from(rde));
 
     let did_name = "did:evan:testcore:invalid";
-    let did_result = library.get_did_document(&did_name).await;
+    let did_result = vade.get_did_document(&did_name).await;
     match did_result {
         Ok(_did) => panic!("unexpected did document"),
         Err(e) => assert!(format!("{}", e) == "could not get did document"),
@@ -80,9 +80,9 @@ async fn returns_an_error_for_invalid_did_ids() {
 // race
 #[tokio::test]
 async fn can_handle_racing_resolvers_1() {
-    let mut library = Library::new();
+    let mut vade = Vade::new();
     let rde = RustDidResolverEvan::new();
-    library.register_did_resolver(Box::from(rde));
+    vade.register_did_resolver(Box::from(rde));
     let mut storage = RustStorageCache::new();
 
     match storage.set(EXAMPLE_DID, EXAMPLE_DID_DOCUMENT_STR).await {
@@ -90,16 +90,16 @@ async fn can_handle_racing_resolvers_1() {
         Err(e) => panic!(format!("{}", e)),
     };
 
-    library.register_did_resolver(Box::from(storage));
-    let did = library.get_did_document(&EXAMPLE_DID).await.unwrap();
+    vade.register_did_resolver(Box::from(storage));
+    let did = vade.get_did_document(&EXAMPLE_DID).await.unwrap();
     assert!(did == EXAMPLE_DID_DOCUMENT_STR);
 }
 
 #[tokio::test]
 async fn can_handle_racing_resolvers_2() {
-    let mut library = Library::new();
+    let mut vade = Vade::new();
     let rde = RustDidResolverEvan::new();
-    library.register_did_resolver(Box::from(rde));
+    vade.register_did_resolver(Box::from(rde));
     let mut storage = RustStorageCache::new();
 
     match storage.set(EXAMPLE_DID, "qwer").await {
@@ -107,7 +107,7 @@ async fn can_handle_racing_resolvers_2() {
         Err(e) => panic!(format!("{}", e)),
     };
 
-    let did_result = library.get_did_document("something different").await;
+    let did_result = vade.get_did_document("something different").await;
     match did_result {
         Ok(_did) => panic!("unexpected did document"),
         Err(e) => assert!(format!("{}", e) == "could not get did document"),
@@ -118,18 +118,18 @@ async fn can_handle_racing_resolvers_2() {
 // currently diabled as `RustDidResolverEvan` does not implement `set_vc_document` atm
 // #[tokio::test]
 async fn can_handle_racing_resolvers_3() {
-    let mut library = Library::new();
+    let mut vade = Vade::new();
     let rde = RustDidResolverEvan::new();
-    library.register_did_resolver(Box::from(rde));
+    vade.register_did_resolver(Box::from(rde));
     let storage = RustStorageCache::new();
 
-    match library.set_did_document(EXAMPLE_DID, EXAMPLE_DID_DOCUMENT_STR).await {
+    match vade.set_did_document(EXAMPLE_DID, EXAMPLE_DID_DOCUMENT_STR).await {
         Ok(()) => (),
         Err(e) => panic!(format!("{}", e)),
     };
 
-    library.register_did_resolver(Box::from(storage));
-    let did = library.get_did_document(&EXAMPLE_DID).await.unwrap();
+    vade.register_did_resolver(Box::from(storage));
+    let did = vade.get_did_document(&EXAMPLE_DID).await.unwrap();
     println!("{:?}", &did);
     assert!(did == String::from(EXAMPLE_DID_DOCUMENT_STR));
 }

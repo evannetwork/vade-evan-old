@@ -1,4 +1,4 @@
-use ssi::library::traits::{ Logger };
+use vade::traits::{ Logger };
 use std::any::Any;
 
 pub struct RustLogger {
