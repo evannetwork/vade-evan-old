@@ -1,8 +1,8 @@
 # Vade - evan.network Plugins
 
-[![crates.io](https://img.shields.io/crates/v/vade-evan.svg)](https://crates.io/crates/vade-evan)
-[![Documentation](https://docs.rs/vade-evan/badge.svg)](https://docs.rs/vade-evan)
-[![Apache-2 licensed](https://img.shields.io/crates/l/vade-evan.svg)](./LICENSE.txt)
+[![crates.io](https://img.shields.io/crates/v/vade_evan.svg)](https://crates.io/crates/vade_evan)
+[![Documentation](https://docs.rs/vade_evan/badge.svg)](https://docs.rs/vade_evan)
+[![Apache-2 licensed](https://img.shields.io/crates/l/vade_evan.svg)](./LICENSE.txt)
 
 ## About
 
