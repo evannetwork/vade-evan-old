@@ -1,4 +1,4 @@
-# ssi-rust-evan
+# vade-rust-evan
 
 ## Next Version
 
