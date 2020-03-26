@@ -8,7 +8,14 @@
 
 ### Deprecations
 
-## Version
+## Version 0.0.3
+
+### Fixes
+
+- update badge links
+- re-align namings
+
+## Version 0.0.2
 
 ### Fixes
 
