@@ -1,11 +1,11 @@
 [package]
 name = "vade-evan"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["evan GmbH"]
 edition = "2018"
 license = "Apache-2.0"
 license-file = "LICENSE.txt"
-description = "Self Sovereign Identity Library"
+description = "vade plugins for working with VCs and DIDs on evan.network"
 homepage = "https://github.com/evannetwork/vade-evan"
 repository = "https://github.com/evannetwork/vade-evan"
 readme = "README.md"
