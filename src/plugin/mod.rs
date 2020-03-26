@@ -14,5 +14,24 @@
   limitations under the License.
 */
 
+//! [`vade`] plugins for working VCs and DIDs on [evan.network](https://evan.network/)
+//!
+//! ### VC Resolver
+//!
+//! Allows to work with VCs on [evan.network](https://evan.network/), currently includes:
+//!
+//! - retrieving VCs
+//! - validating VCs, which will
+//!   - check `proof` (if attached)
+//!   - check `credentialStatus` online (if attached)
+//!
+//! ### DID Resolver
+//!
+//! Allows to work with DIDs on [evan.network](https://evan.network/), currently includes:
+//!
+//! - retrieving DIDs
+//!
+//! [`vade`]: https://docs.rs/vade
+
 pub mod rust_didresolver_evan;
 pub mod rust_vcresolver_evan;

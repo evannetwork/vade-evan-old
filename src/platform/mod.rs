@@ -14,4 +14,9 @@
   limitations under the License.
 */
 
+//! Platform depenent [`vade`] plugins for implementation in Rust. Currently only includes the experimentatl [`RustLogger`].
+//!
+//! [`RustLogger`]: crate::platform::rust_logger::RustLogger
+//! [`vade`]: https://docs.rs/vade
+
 pub mod rust_logger;

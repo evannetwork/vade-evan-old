@@ -1,12 +1,16 @@
-# Self Sovereign Identity - evan.network Plugins
+# Vade - evan.network Plugins
+
+[![crates.io](https://img.shields.io/crates/v/vade-evan.svg)](https://crates.io/crates/vade-evan)
+[![Documentation](https://docs.rs/vade-evan/badge.svg)](https://docs.rs/vade-evan)
+[![Apache-2 licensed](https://img.shields.io/crates/l/vade-evan.svg)](./LICENSE.txt)
 
 ## About
 
-This project is providing two plugins to be used with the `vade` library. These plugins offer functionalities to work with VCs and DIDs on [evan.network](https://evan.network/).
+This project is providing two plugins to be used with the ['vade'] library. These plugins offer functionalities to work with VCs and DIDs on [evan.network](https://evan.network/).
 
 ## Usage
 
-Plugins from this project can be used within the `vade` library as described in its own documentation. To give you a jump start, here is how you can retrieve VC documents:
+Plugins from this project can be used within the ['vade'] library as described in its own documentation. To give you a jump start, here is how you can retrieve VC documents:
 
 ```rust
 extern crate vade;
@@ -29,7 +33,7 @@ async fn can_fetch_a_vc_document() {
 
 ## Plugins
 
-Plugins are described below shotly, for more details see respective API documentation.
+Plugins are described below shotly, for more details see respective [API documentation](https://docs.rs/vade_evan)
 
 ### VC Resolver
 
@@ -45,3 +49,5 @@ Allows to work with VCs on [evan.network](https://evan.network/), currently incl
 Allows to work with DIDs on [evan.network](https://evan.network/), currently includes:
 
 - retrieving DIDs
+
+[`vade`]: https://docs.rs/vade
