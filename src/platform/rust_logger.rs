@@ -14,6 +14,10 @@
   limitations under the License.
 */
 
+//! Small [`Logger`] plugin implementation. As the [`Logger`] trait is currently considered experimental, this plugin will most probably undergo changes in future.
+//!
+//! [`Logger`]: vade::traits::Logger
+
 use vade::traits::{ Logger };
 use std::any::Any;
 
@@ -21,6 +25,9 @@ pub struct RustLogger {
 
 }
 
+/// Small [`Logger`] plugin implementation. As the [`Logger`] trait is currently considered experimental, this plugin will most probably undergo changes in future.
+///
+/// [`Logger`]: vade::traits::Logger
 impl RustLogger {
     pub fn new() -> RustLogger {
         match env_logger::try_init() {
@@ -31,11 +38,18 @@ impl RustLogger {
 }
 
 impl Logger for RustLogger {
-    /// Cast to `Any` for downcasting.
+    /// Cast to `Any` for downcasting,
+    /// see https://stackoverflow.com/questions/33687447/how-to-get-a-reference-to-a-concrete-type-from-a-trait-object.
     fn as_any(&self) -> &dyn Any {
         self
     }
     
+    /// Logs given message with given level.
+    /// 
+    /// # Arguments
+    ///
+    /// * `message` - message to log
+    /// * `level` - optional arguments for logging level, levels may differ based on environment
     fn log(&self, message: &str, level: Option<&str>) {
         match level {
             Some("error") => error!("{}", message),

@@ -47,14 +47,6 @@ struct EvanDidPublicKey {
     pub id: String,
 }
 
-// #[allow(non_snake_case)]
-// #[derive(Serialize, Deserialize, Debug)]
-/// xxx
-/// does NOT reflect a full evan.network DID document
-// struct EvanVcDecodedPayload {
-//     pub vc: Map<String, String>,
-// }
-
 /// Resolver for DIDs on evan.network (currently on testnet)
 pub struct RustVcResolverEvan {
     pub vade: Option<Box<Vade>>,
@@ -83,6 +75,7 @@ impl RustVcResolverEvan {
     }
 
     /// Gets all keys from given DID. `self.vade` will be queried for DID, then public keys are checked for keys.
+    ///
     /// # Arguments
     /// 
     /// * `key_from_did` - key reference to a DID document like "$DID#key-1"
@@ -204,10 +197,8 @@ impl VcResolver for RustVcResolverEvan {
     }
 }
 
-
-
 /// Fetches revokation status for VCs. VCs can be active or revoked (-> true/false)
-/// mivadeng VC documents or other errors are indicated as Errors.
+/// missing VC documents or other errors are indicated as Errors.
 ///
 /// # Arguments
 ///
@@ -229,6 +220,11 @@ async fn get_vc_status_valid(vc_status_id: &str) -> Result<bool, Box<dyn std::er
     }
 }
 
+/// Recovers Ethereum address of signer and data part of a jwt.
+///
+/// # Arguments
+///
+/// * `jwt` - jwt as str&
 fn recover_address_and_data(jwt: &str) -> Result<(String, String), Box<dyn std::error::Error>> {
     // jwt text parsing
     let split: Vec<&str> = jwt.split('.').collect();
