@@ -33,7 +33,7 @@ async fn can_fetch_a_vc_document() {
 
 ## Plugins
 
-Plugins are described below shotly, for more details see respective [API documentation](https://docs.rs/vade_evan)
+Plugins are described below shotly, for more details see respective [API documentation](https://docs.rs/vade-evan)
 
 ### VC Resolver
 
