@@ -14,11 +14,11 @@
   limitations under the License.
 */
 
-//! This project is providing two plugins to be used with the ['vade'] library. These plugins offer functionalities to work with VCs and DIDs on [evan.network](https://evan.network/).
+//! This project is providing two plugins to be used with the [`vade`] library. These plugins offer functionalities to work with VCs and DIDs on [evan.network].
 //!
 //! ## Usage
 //!
-//! Plugins from this project can be used within the ['vade'] library as described in its own documentation. To give you a jump start, here is how you can retrieve VC documents:
+//! Plugins from this project can be used within the [`vade`] library as described in its own documentation. To give you a jump start, here is how you can retrieve VC documents:
 //!
 //! ```rust
 //! extern crate vade;
@@ -41,11 +41,11 @@
 //!
 //! ## Plugins
 //!
-//! Plugins are described below shotly, for more details see respective [API documentation](https://docs.rs/vade_evan)
+//! Plugins are described below shotly, for more details see respective [API documentation].
 //!
 //! ### VC Resolver
 //!
-//! Allows to work with VCs on [evan.network](https://evan.network/), currently includes:
+//! Allows to work with VCs on [evan.network], currently includes:
 //!
 //! - retrieving VCs
 //! - validating VCs, which will
@@ -54,11 +54,13 @@
 //!
 //! ### DID Resolver
 //!
-//! Allows to work with DIDs on [evan.network](https://evan.network/), currently includes:
+//! Allows to work with DIDs on [evan.network], currently includes:
 //!
 //! - retrieving DIDs
 //!
 //! [`vade`]: https://docs.rs/vade
+//! [API documentation]: https://docs.rs/vade-evan
+//! [evan.network]: https://evan.network
 
 extern crate env_logger;
 #[macro_use]
