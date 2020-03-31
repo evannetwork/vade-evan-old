@@ -8,6 +8,12 @@
 
 ### Deprecations
 
+## Version 0.0.4
+
+### Fixes
+
+- update links in docu
+
 ## Version 0.0.3
 
 ### Fixes
