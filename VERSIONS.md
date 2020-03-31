@@ -8,13 +8,18 @@
 
 ### Deprecations
 
+## Version 0.0.4
+
+### Fixes
+
+- update links in docu
+
 ## Version 0.0.3
 
 ### Fixes
 
 - update badge links
 - re-align namings
-- update links in docu
 
 ## Version 0.0.2
 
