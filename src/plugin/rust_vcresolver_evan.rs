@@ -15,6 +15,7 @@
 */
 
 use async_trait::async_trait;
+use chrono::{ DateTime, Utc };
 use data_encoding::BASE64URL;
 use regex::Regex;
 use reqwest;
@@ -28,6 +29,12 @@ use vade::traits::VcResolver;
 use vade::Vade;
 use std::str;
 
+/// mandatory context, will be inserted automatically if not provided for
+/// [create_vc](crate::plugin::rust_rust_vcresolver_evan::RustVcResolverEvan#method.create_vc)
+pub const VC_W3C_MANDATORY_CONTEXT: &'static str = "https://www.w3.org/2018/credentials/v1";
+/// default type, will be used if no type is provided for
+/// [create_vc](crate::plugin::rust_rust_vcresolver_evan::RustVcResolverEvan#method.create_vc)
+pub const VC_DEFAULT_TYPE: &'static str = "VerifiableCredential";
 const JWT_REGEX: &'static str = r#"^\{"iat":[^,]+,"vc":(.*),"iss":"[^"]+?"\}$"#;
 
 #[allow(non_snake_case)]
@@ -97,6 +104,57 @@ impl RustVcResolverEvan {
             0 => Err(Box::from(format!("key {} not found in DID {}", key_from_did, did))),
             _ => Err(Box::from(format!("multiple matches found for key {} in DID {}", key_from_did, did))),
         }
+    }
+
+    pub async fn create_vc(
+        &self,
+        vc_data: &str,
+        verification_method: &str,
+        _private_key: &str
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let mut parsed_vc: Value = serde_json::from_str(&vc_data).unwrap();
+
+        // currently new VCs created here are offline, so id is mandatory
+        if parsed_vc["id"].is_null() {
+            return Err(Box::new(SimpleError::new("\"id\" is required for offline VCs")))
+        } 
+
+        // ensure proper context
+        if parsed_vc["@context"].is_null() {
+            parsed_vc["@context"] = Value::from(Vec::<&str>::new());
+        }
+        if !parsed_vc["@context"].as_array().unwrap().iter().any(|v| v == VC_W3C_MANDATORY_CONTEXT) {
+            parsed_vc["@context"].as_array_mut().unwrap().push(Value::from(VC_W3C_MANDATORY_CONTEXT));
+        }
+
+        // ensure type
+        if parsed_vc["type"].is_null() {
+            parsed_vc["type"] = Value::from(VC_DEFAULT_TYPE);
+        }
+
+        // if not privided, fill issuer with given `verification_methoda`, did
+        if parsed_vc["issuer"].is_null() {
+            let split: Vec<&str> = verification_method.split('#').collect();
+            parsed_vc["issuer"] = Value::from(split[0]);
+        }
+
+        // ensure validFrom timestamp
+        if parsed_vc["validFrom"].is_null() {
+            let now: DateTime<Utc> = Utc::now();
+            parsed_vc["validFrom"] = Value::from(format!("{}", now.format("%Y-%m-%dT%H:%M:%S.000Z")));
+        }
+
+        // vc without proof
+        let vc_str = String::from(format!("{}", &parsed_vc));
+        debug!("vc without proof: {}", vc_str);
+
+        let proof = "magic";
+        parsed_vc["proof"] = Value::from(proof);
+
+        // vc withproof
+        let vc_str = String::from(format!("{}", &parsed_vc));
+
+        Ok(vc_str)
     }
 }
 
@@ -244,6 +302,12 @@ fn recover_address_and_data(jwt: &str) -> Result<(String, String), Box<dyn std::
     };
     let data_string = String::from_utf8(data_decoded)?;
 
+    println!("");
+    println!("header    {}", String::from_utf8(BASE64URL.decode(header.as_bytes()).unwrap())?);
+    println!("data      {}", data_string);
+    println!("signature {}", signature);
+    println!("");
+
     // decode signature for validation
     let signature_decoded = match BASE64URL.decode(signature.as_bytes()) {
         Ok(decoded) => decoded,
@@ -282,3 +346,21 @@ fn recover_address_and_data(jwt: &str) -> Result<(String, String), Box<dyn std::
 
     Ok((address, data_string))
 }
+
+// fn create_proof(vc: &Value, private_key: &str) -> Result<String, Box<dyn std::error::Error>> {
+//     // header   : {"typ":"JWT","alg":"ES256K-R"}
+//     // data     : {
+//     //              "iat":1584606631,
+//     //              "vc":{"@context":["https://www.w3.org/2018/credentials/v1"],"type":["VerifiableCredential"],"issuer":{"id":"did:evan:testcore:0x0ef0e584c714564a4fc0c6c367edccb0c1cbf65f"},"credentialSubject":{"id":"did:evan:testcore:0x67ced07dd4f37aa2319bedd97d040b64888c57bc","data":[{"name":"isTrustedSupplier","value":"true"}]},"validFrom":"2020-03-19T08:30:30.536Z","id":"vc:evan:testcore:0x8b078ee6cfb208dca52bf89ab7178e0f11323f4363c1a6ad18321275e6d07fcb","credentialStatus":{"id":"https://testcore.evan.network/vc/status/vc:evan:testcore:0x8b078ee6cfb208dca52bf89ab7178e0f11323f4363c1a6ad18321275e6d07fcb","type":"evan:evanCredential"}},
+//     //              "iss":"did:evan:testcore:0x0ef0e584c714564a4fc0c6c367edccb0c1cbf65f"
+//     //            }
+//     // signature: IMPiWh1fEeVN8n7FlhFzG8bEzPafX7-H04OwLSTi4Wh7wxpanoq_4nUcsC9LlrxNALSKf8cUJUb03xir4uGBpAE
+
+//     // create to-be-signed jwt
+//     let header_str = r#"{"typ":"JWT","alg":"ES256K-R"}"#;
+//     let header_encoded = BASE64URL.encode(header_str.as_bytes());
+//     let mut data_json = serde_json::from_str("{}").unwrap();
+    
+
+//     Ok("magic")
+// }

@@ -62,6 +62,7 @@
 //! [API documentation]: https://docs.rs/vade-evan
 //! [evan.network]: https://evan.network
 
+extern crate chrono;
 extern crate env_logger;
 #[macro_use]
 extern crate log;
