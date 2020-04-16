@@ -29,32 +29,41 @@ use vade_evan::plugin::rust_vcresolver_evan::{
     VC_W3C_MANDATORY_CONTEXT,
 };
 
-const EXAMPLE_VC_NAME_REMOTE: &str = "vc:evan:testcore:0x6e90a3e2bf3823e52eceb0f81373eb58b1a0a238965f0d4388ab9ce9ceeddfd3";
+const EXAMPLE_VC_NAME_REMOTE: &str = "vc:evan:testcore:0x75956ef9b3ea7d7230cf007b8ee042bcaa2a4dad8c043fa77ecf51262ee4f7a9";
 const EXAMPLE_VC_DOCUMENT_STR_REMOTE: &str = r###"
-{ "@context": [ "https://www.w3.org/2018/credentials/v1" ],
-  "credentialStatus":
-   { "id":
-      "https://testcore.evan.network/vc/vc:evan:testcore:0x6e90a3e2bf3823e52eceb0f81373eb58b1a0a238965f0d4388ab9ce9ceeddfd3",
-     "type": "evan:evanCredential" },
-  "credentialSubject":
-   { "data": [ { "name": "isTrustedSupplier", "value": "true" } ],
-     "id":
-      "did:evan:testcore:0x67ce8b01b3b75a9ba4a1462139a1edaa0d2f539f" },
-  "id":
-   "vc:evan:testcore:0x6e90a3e2bf3823e52eceb0f81373eb58b1a0a238965f0d4388ab9ce9ceeddfd3",
-  "issuer":
-   { "id":
-      "did:evan:testcore:0x96da854df34f5dcd25793b75e170b3d8c63a95ad" },
-  "proof":
-   { "created": "2020-02-25T09:48:58.451Z",
-     "jws":
-      "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NkstUiJ9.eyJpYXQiOjE1ODI2MjQxMzgsInZjIjp7IkBjb250ZXh0IjpbImh0dHBzOi8vd3d3LnczLm9yZy8yMDE4L2NyZWRlbnRpYWxzL3YxIl0sInR5cGUiOlsiVmVyaWZpYWJsZUNyZWRlbnRpYWwiXSwiaXNzdWVyIjp7ImlkIjoiZGlkOmV2YW46dGVzdGNvcmU6MHg5NmRhODU0ZGYzNGY1ZGNkMjU3OTNiNzVlMTcwYjNkOGM2M2E5NWFkIn0sImNyZWRlbnRpYWxTdWJqZWN0Ijp7ImlkIjoiZGlkOmV2YW46dGVzdGNvcmU6MHg2N2NlOGIwMWIzYjc1YTliYTRhMTQ2MjEzOWExZWRhYTBkMmY1MzlmIiwiZGF0YSI6W3sibmFtZSI6ImlzVHJ1c3RlZFN1cHBsaWVyIiwidmFsdWUiOiJ0cnVlIn1dfSwidmFsaWRGcm9tIjoiMjAyMC0wMi0yNVQwOTo0ODo1Ny42NjBaIiwiaWQiOiJ2YzpldmFuOnRlc3Rjb3JlOjB4NmU5MGEzZTJiZjM4MjNlNTJlY2ViMGY4MTM3M2ViNThiMWEwYTIzODk2NWYwZDQzODhhYjljZTljZWVkZGZkMyIsImNyZWRlbnRpYWxTdGF0dXMiOnsiaWQiOiJodHRwczovL3Rlc3Rjb3JlLmV2YW4ubmV0d29yay92Yy92YzpldmFuOnRlc3Rjb3JlOjB4NmU5MGEzZTJiZjM4MjNlNTJlY2ViMGY4MTM3M2ViNThiMWEwYTIzODk2NWYwZDQzODhhYjljZTljZWVkZGZkMyIsInR5cGUiOiJldmFuOmV2YW5DcmVkZW50aWFsIn19LCJpc3MiOiJkaWQ6ZXZhbjp0ZXN0Y29yZToweDk2ZGE4NTRkZjM0ZjVkY2QyNTc5M2I3NWUxNzBiM2Q4YzYzYTk1YWQifQ.IC8Zb8a1o3OVRh113DX8OSlZuan8jBo_jOWrD_cxovKZs374KKiSTqZD1Uo-Y4jxxCS3dp845nKKeEtPUO6OQQE",
-     "proofPurpose": "assertionMethod",
-     "type": "EcdsaPublicKeySecp256k1",
-     "verificationMethod":
-      "did:evan:testcore:0x96da854df34f5dcd25793b75e170b3d8c63a95ad#key-1" },
-  "type": [ "VerifiableCredential" ],
-  "validFrom": "2020-02-25T09:48:57.660Z" }
+{
+    "@context": [
+      "https://www.w3.org/2018/credentials/v1"
+    ],
+    "type": [
+      "VerifiableCredential"
+    ],
+    "issuer": {
+      "id": "did:evan:testcore:0x0d87204c3957d73b68ae28d0af961d3c72403906"
+    },
+    "credentialSubject": {
+      "id": "did:evan:testcore:0xc88d707c2436fa3ce4a1e52d751469acae689fdb",
+      "data": [
+        {
+          "name": "isTrustedSupplier",
+          "value": "true"
+        }
+      ]
+    },
+    "validFrom": "2020-04-16T06:54:32.805Z",
+    "id": "vc:evan:testcore:0x75956ef9b3ea7d7230cf007b8ee042bcaa2a4dad8c043fa77ecf51262ee4f7a9",
+    "credentialStatus": {
+      "id": "https://testcore.evan.network/vc/status/vc:evan:testcore:0x75956ef9b3ea7d7230cf007b8ee042bcaa2a4dad8c043fa77ecf51262ee4f7a9",
+      "type": "evan:evanCredential"
+    },
+    "proof": {
+      "type": "EcdsaPublicKeySecp256k1",
+      "created": "2020-04-16T06:54:36.663Z",
+      "proofPurpose": "assertionMethod",
+      "verificationMethod": "did:evan:testcore:0x0d87204c3957d73b68ae28d0af961d3c72403906#key-1",
+      "jws": "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NkstUiJ9.eyJpYXQiOjE1ODcwMjAwNzYsInZjIjp7IkBjb250ZXh0IjpbImh0dHBzOi8vd3d3LnczLm9yZy8yMDE4L2NyZWRlbnRpYWxzL3YxIl0sInR5cGUiOlsiVmVyaWZpYWJsZUNyZWRlbnRpYWwiXSwiaXNzdWVyIjp7ImlkIjoiZGlkOmV2YW46dGVzdGNvcmU6MHgwZDg3MjA0YzM5NTdkNzNiNjhhZTI4ZDBhZjk2MWQzYzcyNDAzOTA2In0sImNyZWRlbnRpYWxTdWJqZWN0Ijp7ImlkIjoiZGlkOmV2YW46dGVzdGNvcmU6MHhjODhkNzA3YzI0MzZmYTNjZTRhMWU1MmQ3NTE0NjlhY2FlNjg5ZmRiIiwiZGF0YSI6W3sibmFtZSI6ImlzVHJ1c3RlZFN1cHBsaWVyIiwidmFsdWUiOiJ0cnVlIn1dfSwidmFsaWRGcm9tIjoiMjAyMC0wNC0xNlQwNjo1NDozMi44MDVaIiwiaWQiOiJ2YzpldmFuOnRlc3Rjb3JlOjB4NzU5NTZlZjliM2VhN2Q3MjMwY2YwMDdiOGVlMDQyYmNhYTJhNGRhZDhjMDQzZmE3N2VjZjUxMjYyZWU0ZjdhOSIsImNyZWRlbnRpYWxTdGF0dXMiOnsiaWQiOiJodHRwczovL3Rlc3Rjb3JlLmV2YW4ubmV0d29yay92Yy9zdGF0dXMvdmM6ZXZhbjp0ZXN0Y29yZToweDc1OTU2ZWY5YjNlYTdkNzIzMGNmMDA3YjhlZTA0MmJjYWEyYTRkYWQ4YzA0M2ZhNzdlY2Y1MTI2MmVlNGY3YTkiLCJ0eXBlIjoiZXZhbjpldmFuQ3JlZGVudGlhbCJ9fSwiaXNzIjoiZGlkOmV2YW46dGVzdGNvcmU6MHgwZDg3MjA0YzM5NTdkNzNiNjhhZTI4ZDBhZjk2MWQzYzcyNDAzOTA2In0.DASfiCeTpWmE5xnrlB0CPiGrk_zyf05I2k9B5_FtyLH4mMlJqK4_hCWYv_j7OH6S79Q5ES_Am30ib9zAGnhPGAE"
+    }
+}
 "###;
 
 const EXAMPLE_VC_NAME: &str = "vc:evan:testcore:0x8b078ee6cfb208dca52bf89ab7178e0f11323f4363c1a6ad18321275e6d07fcb";
