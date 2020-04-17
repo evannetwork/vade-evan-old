@@ -160,7 +160,7 @@ impl RustVcResolverEvan {
 
         // ensure proof
         if parsed_vc["proof"].is_null() {
-            parsed_vc["proof"] = create_proof(&parsed_vc, &private_key, &now).unwrap();
+            parsed_vc["proof"] = create_proof(&parsed_vc, &verification_method, &private_key, &now).unwrap();
         }
 
         // final VC document
@@ -296,10 +296,12 @@ async fn get_vc_status_valid(vc_status_id: &str) -> Result<bool, Box<dyn std::er
 /// # Arguments
 ///
 /// * `vc` - vc to create proof for
+/// * `verification_method` - issuer of VC
 /// * `private_key` - private key to create proof as 32B hex string
 /// * `now` - timestamp of issuing, may have also been used to determine `validFrom` in VC
 fn create_proof(
     vc: &Value,
+    verification_method: &str,
     private_key: &str,
     now: &DateTime<Utc>
 ) -> Result<Value, Box<dyn std::error::Error>> {
@@ -329,6 +331,7 @@ fn create_proof(
     let message = Message::parse(&hash_arr);
     let mut private_key_arr = [0u8; 32];
     hex::decode_to_slice(&private_key, &mut private_key_arr).expect("private key invalid");
+    // private_key_arr[0] = 255;
     let secret_key = SecretKey::parse(&private_key_arr)?;
     let (sig, _): (Signature, _) = sign(&message, &secret_key);
     let sig_base64url = BASE64URL.encode(&sig.serialize());
@@ -343,7 +346,7 @@ fn create_proof(
         "proofPurpose": "assertionMethod",
         "verificationMethod": "{}",
         "jws": "{}"
-    }}"###, &utc_now, &vc["issuer"].as_str().unwrap(), &jws);
+    }}"###, &utc_now, &verification_method, &jws);
     let proof: Value = serde_json::from_str(&proof_json_str).unwrap();
 
     Ok(proof)

@@ -322,7 +322,7 @@ async fn can_create_new_vcs() -> std::result::Result<(), Box<dyn std::error::Err
     vade.register_vc_resolver(Box::from(vcr));
 
     // test VC document
-    let vc_result = vade.check_vc(EXAMPLE_VC_NAME, EXAMPLE_VC_DOCUMENT_STR).await;
+    let vc_result = vade.check_vc("foo-bar-vc", &vc).await;
     match vc_result {
         Ok(_) => (),
         Err(e) => panic!(format!("{}", e)),
