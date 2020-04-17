@@ -220,6 +220,7 @@ impl VcResolver for RustVcResolverEvan {
             debug!("recovered address: {}", &address);
             debug!("key to use for verification: {}", &key_to_use);
             let key_from_did = self.get_key_from_did(key_to_use).await?;
+            debug!("key from did: {}", &key_from_did);
             if address != key_from_did {
                 return Err(Box::from(format!("could not verify signature of \"{}\"", vc_id)));
             }
@@ -307,7 +308,8 @@ fn create_proof(
 ) -> Result<Value, Box<dyn std::error::Error>> {
     // create to-be-signed jwt
     let header_str = r#"{"typ":"JWT","alg":"ES256K-R"}"#;
-    let header_encoded = BASE64URL.encode(header_str.as_bytes());
+    let padded = BASE64URL.encode(header_str.as_bytes());
+    let header_encoded = padded.trim_end_matches('=');
     debug!("header base64 url encdoded: {:?}", &header_encoded);
 
     // build data object and hash
@@ -316,7 +318,8 @@ fn create_proof(
     data_json["iat"] = Value::from(now.timestamp());
     data_json["vc"] = vc_clone;
     data_json["iss"] = Value::from(vc["issuer"].as_str().unwrap());
-    let data_encoded = BASE64URL.encode(format!("{}", &data_json).as_bytes());
+    let padded = BASE64URL.encode(format!("{}", &data_json).as_bytes());
+    let data_encoded = padded.trim_end_matches('=');
     debug!("data base64 url encdoded: {:?}", &data_encoded);
 
     // create hash of data (including header)
@@ -331,10 +334,17 @@ fn create_proof(
     let message = Message::parse(&hash_arr);
     let mut private_key_arr = [0u8; 32];
     hex::decode_to_slice(&private_key, &mut private_key_arr).expect("private key invalid");
-    // private_key_arr[0] = 255;
     let secret_key = SecretKey::parse(&private_key_arr)?;
-    let (sig, _): (Signature, _) = sign(&message, &secret_key);
-    let sig_base64url = BASE64URL.encode(&sig.serialize());
+    let (sig, rec): (Signature, _) = sign(&message, &secret_key);
+    // sig to bytes (len 64), append recoveryid
+    let signature_arr = &sig.serialize();
+    let mut sig_and_rec: [u8; 65] = [0; 65];
+    for i in 0..64 {
+        sig_and_rec[i] = signature_arr[i];
+    }
+    sig_and_rec[64] = rec.serialize();
+    let padded = BASE64URL.encode(&sig_and_rec);
+    let sig_base64url = padded.trim_end_matches('=');
     debug!("signature base64 url encdoded: {:?}", &sig_base64url);
 
     // build proof property as serde object
@@ -379,7 +389,10 @@ fn recover_address_and_data(jwt: &str) -> Result<(String, String), Box<dyn std::
     // decode signature for validation
     let signature_decoded = match BASE64URL.decode(signature.as_bytes()) {
         Ok(decoded) => decoded,
-        Err(_) => BASE64URL.decode(format!("{}=", signature).as_bytes()).unwrap(),
+        Err(_) => match BASE64URL.decode(format!("{}=", signature).as_bytes()) {
+            Ok(decoded) => decoded,
+            Err(_) => BASE64URL.decode(format!("{}==", signature).as_bytes()).unwrap(),
+        },
     };
     debug!("signature_decoded {:?}", &signature_decoded);
     debug!("signature_decoded.len {:?}", signature_decoded.len());
@@ -397,8 +410,10 @@ fn recover_address_and_data(jwt: &str) -> Result<(String, String), Box<dyn std::
     for i in 0..64 {
         signature_array[i] = signature_decoded[i];
     }
+    // slice signature and recovery for recovery
+    debug!("recovery id: {}", signature_decoded[64]);
     let ctx_sig = Signature::parse(&signature_array);
-    let recovery_id = RecoveryId::parse(1).unwrap();
+    let recovery_id = RecoveryId::parse(signature_decoded[64]).unwrap();
 
     // recover public key, build ethereum address from it
     let recovered_key = recover(&ctx_msg, &ctx_sig, &recovery_id).unwrap();

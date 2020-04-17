@@ -283,7 +283,38 @@ async fn cannot_validate_invalid_vcs() -> std::result::Result<(), Box<dyn std::e
 }
 
 #[tokio::test]
-async fn can_create_new_vcs() -> std::result::Result<(), Box<dyn std::error::Error>> {
+async fn vc_resolver_can_create_new_vcs() -> std::result::Result<(), Box<dyn std::error::Error>> {
+    let veri_issuer = "did:evan:testcore:0x0ef0e584c714564a4fc0c6c367edccb0c1cbf65f";
+    let veri_method = "did:evan:testcore:0x0ef0e584c714564a4fc0c6c367edccb0c1cbf65f#key-1";
+    let veri_pkey = "01734663843202e2245e5796cb120510506343c67915eb4f9348ac0d8c2cf22a";
+    let partial_vc_data =r###"
+    {
+        "id": "foo-bar-vc",
+        "credentialSubject": {
+            "foo": "bar"
+        }
+    } 
+"###;
+
+    let vcr = RustVcResolverEvan::new();
+
+    let vc: String = vcr.create_vc(partial_vc_data, &veri_method, &veri_pkey).await.unwrap();
+
+    let parsed: Value = serde_json::from_str(&vc).unwrap();
+
+    assert!(parsed["credentialSubject"]["foo"].as_str() == Some("bar"));
+    assert!(parsed["@context"].as_array().unwrap().len() == 1);
+    assert!(parsed["@context"].as_array().unwrap().iter().any(|v| v == VC_W3C_MANDATORY_CONTEXT));
+    assert!(parsed["type"].as_str() == Some(VC_DEFAULT_TYPE));
+    assert!(parsed["issuer"].as_str() == Some(veri_issuer));
+    assert!(parsed["validFrom"].as_str() != None);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn vc_resolver_can_create_new_vcs_and_validate_them(
+) -> std::result::Result<(), Box<dyn std::error::Error>> {
     let veri_issuer = "did:evan:testcore:0x0ef0e584c714564a4fc0c6c367edccb0c1cbf65f";
     let veri_method = "did:evan:testcore:0x0ef0e584c714564a4fc0c6c367edccb0c1cbf65f#key-1";
     let veri_pkey = "01734663843202e2245e5796cb120510506343c67915eb4f9348ac0d8c2cf22a";
@@ -326,6 +357,57 @@ async fn can_create_new_vcs() -> std::result::Result<(), Box<dyn std::error::Err
     match vc_result {
         Ok(_) => (),
         Err(e) => panic!(format!("{}", e)),
+    }
+
+    Ok(())
+}
+
+
+#[tokio::test]
+async fn vc_resolver_can_create_new_vcs_and_fails_on_invalid_private_key(
+) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    let veri_issuer = "did:evan:testcore:0x0ef0e584c714564a4fc0c6c367edccb0c1cbf65f";
+    let veri_method = "did:evan:testcore:0x0ef0e584c714564a4fc0c6c367edccb0c1cbf65f#key-1";
+    let veri_pkey = "ff734663843202e2245e5796cb120510506343c67915eb4f9348ac0d8c2cf22a";
+    let partial_vc_data =r###"
+    {
+        "id": "foo-bar-vc",
+        "credentialSubject": {
+            "foo": "bar"
+        }
+    }
+"###;
+
+    let mut vcr = RustVcResolverEvan::new();
+
+    let vc: String = vcr.create_vc(partial_vc_data, &veri_method, &veri_pkey).await.unwrap();
+
+    let parsed: Value = serde_json::from_str(&vc).unwrap();
+
+    assert!(parsed["credentialSubject"]["foo"].as_str() == Some("bar"));
+    assert!(parsed["@context"].as_array().unwrap().len() == 1);
+    assert!(parsed["@context"].as_array().unwrap().iter().any(|v| v == VC_W3C_MANDATORY_CONTEXT));
+    assert!(parsed["type"].as_str() == Some(VC_DEFAULT_TYPE));
+    assert!(parsed["issuer"].as_str() == Some(veri_issuer));
+    assert!(parsed["validFrom"].as_str() != None);
+
+    // test VC document
+    let vcr_didr = RustStorageCache::new();
+    let mut vcr_vade = Vade::new();
+    vcr_vade.register_did_resolver(Box::from(vcr_didr));
+    // add did document to vcr's did resolver
+    vcr_vade.set_did_document(EXAMPLE_DID, EXAMPLE_DID_DOCUMENT_STR).await?;
+    vcr.vade = Some(Box::from(vcr_vade));
+
+    // create vade to work with, attach 
+    let mut vade = Vade::new();
+    vade.register_vc_resolver(Box::from(vcr));
+
+    // test VC document
+    let vc_result = vade.check_vc("foo-bar-vc", &vc).await;
+    match vc_result {
+        Ok(_) => panic!("verification of VC should have failed but succeeded"),
+        Err(_) => (),
     }
 
     Ok(())
