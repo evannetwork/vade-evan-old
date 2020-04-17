@@ -64,6 +64,7 @@
 
 extern crate chrono;
 extern crate env_logger;
+extern crate hex;
 #[macro_use]
 extern crate log;
 extern crate secp256k1;

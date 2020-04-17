@@ -21,8 +21,8 @@ extern crate vade_evan;
 
 use serde_json::Value;
 use vade::Vade;
-use vade::traits::DidResolver;
 use vade::plugin::rust_storage_cache::RustStorageCache;
+use vade::traits::DidResolver;
 use vade_evan::plugin::rust_vcresolver_evan::{
     RustVcResolverEvan,
     VC_DEFAULT_TYPE,
@@ -284,8 +284,8 @@ async fn cannot_validate_invalid_vcs() -> std::result::Result<(), Box<dyn std::e
 
 #[tokio::test]
 async fn can_create_new_vcs() -> std::result::Result<(), Box<dyn std::error::Error>> {
-    let veri_issuer = "did:evan:testcore:0x96da854df34f5dcd25793b75e170b3d8c63a95ad";
-    let veri_method = "did:evan:testcore:0x96da854df34f5dcd25793b75e170b3d8c63a95ad#key-1";
+    let veri_issuer = "did:evan:testcore:0x0ef0e584c714564a4fc0c6c367edccb0c1cbf65f";
+    let veri_method = "did:evan:testcore:0x0ef0e584c714564a4fc0c6c367edccb0c1cbf65f#key-1";
     let veri_pkey = "01734663843202e2245e5796cb120510506343c67915eb4f9348ac0d8c2cf22a";
     let partial_vc_data =r###"
     {
@@ -296,7 +296,7 @@ async fn can_create_new_vcs() -> std::result::Result<(), Box<dyn std::error::Err
     } 
 "###;
 
-    let vcr = RustVcResolverEvan::new();
+    let mut vcr = RustVcResolverEvan::new();
 
     let vc: String = vcr.create_vc(partial_vc_data, &veri_method, &veri_pkey).await.unwrap();
 
@@ -308,6 +308,25 @@ async fn can_create_new_vcs() -> std::result::Result<(), Box<dyn std::error::Err
     assert!(parsed["type"].as_str() == Some(VC_DEFAULT_TYPE));
     assert!(parsed["issuer"].as_str() == Some(veri_issuer));
     assert!(parsed["validFrom"].as_str() != None);
+
+    // test VC document
+    let vcr_didr = RustStorageCache::new();
+    let mut vcr_vade = Vade::new();
+    vcr_vade.register_did_resolver(Box::from(vcr_didr));
+    // add did document to vcr's did resolver
+    vcr_vade.set_did_document(EXAMPLE_DID, EXAMPLE_DID_DOCUMENT_STR).await?;
+    vcr.vade = Some(Box::from(vcr_vade));
+
+    // create vade to work with, attach 
+    let mut vade = Vade::new();
+    vade.register_vc_resolver(Box::from(vcr));
+
+    // test VC document
+    let vc_result = vade.check_vc(EXAMPLE_VC_NAME, EXAMPLE_VC_DOCUMENT_STR).await;
+    match vc_result {
+        Ok(_) => (),
+        Err(e) => panic!(format!("{}", e)),
+    }
 
     Ok(())
 }

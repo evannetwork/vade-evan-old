@@ -19,15 +19,16 @@ use chrono::{ DateTime, Utc };
 use data_encoding::BASE64URL;
 use regex::Regex;
 use reqwest;
-use secp256k1::{Message, Signature, recover, RecoveryId};
-use serde::{Serialize, Deserialize};
+use secp256k1::{Message, Signature, recover, RecoveryId, SecretKey, sign};
 use serde_json::Value;
+use serde::{Serialize, Deserialize};
 use sha2::{Digest, Sha256};
 use sha3::Keccak256;
 use simple_error::SimpleError;
+use std::convert::TryInto;
+use std::str;
 use vade::traits::VcResolver;
 use vade::Vade;
-use std::str;
 
 /// mandatory context, will be inserted automatically if not provided for
 /// [create_vc](crate::plugin::rust_rust_vcresolver_evan::RustVcResolverEvan#method.create_vc)
@@ -35,7 +36,7 @@ pub const VC_W3C_MANDATORY_CONTEXT: &'static str = "https://www.w3.org/2018/cred
 /// default type, will be used if no type is provided for
 /// [create_vc](crate::plugin::rust_rust_vcresolver_evan::RustVcResolverEvan#method.create_vc)
 pub const VC_DEFAULT_TYPE: &'static str = "VerifiableCredential";
-const JWT_REGEX: &'static str = r#"^\{"iat":[^,]+,"vc":(.*),"iss":"[^"]+?"\}$"#;
+const JWT_REGEX: &'static str = r#"^\s*\{"iat":[^,]+,"vc":(.*),"iss":"[^"]+?"\}\s*$"#;
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug)]
@@ -106,11 +107,24 @@ impl RustVcResolverEvan {
         }
     }
 
+    /// Creates a new VC document. Will automatically add manadatory fields and proof.
+    /// Automatically adds the following fields if missing:
+    /// - @context
+    /// - type
+    /// - issuer
+    /// - validFrom
+    /// - proof
+    ///
+    /// # Arguments
+    ///
+    /// * `vc_data` - partial or full VC
+    /// * `verification_method` - issuer of VC
+    /// * `private_key` - private key to create proof as 32B hex string
     pub async fn create_vc(
         &self,
         vc_data: &str,
         verification_method: &str,
-        _private_key: &str
+        private_key: &str
     ) -> Result<String, Box<dyn std::error::Error>> {
         let mut parsed_vc: Value = serde_json::from_str(&vc_data).unwrap();
 
@@ -139,20 +153,19 @@ impl RustVcResolverEvan {
         }
 
         // ensure validFrom timestamp
+        let now: DateTime<Utc> = Utc::now();
         if parsed_vc["validFrom"].is_null() {
-            let now: DateTime<Utc> = Utc::now();
             parsed_vc["validFrom"] = Value::from(format!("{}", now.format("%Y-%m-%dT%H:%M:%S.000Z")));
         }
 
-        // vc without proof
-        let vc_str = String::from(format!("{}", &parsed_vc));
-        debug!("vc without proof: {}", vc_str);
+        // ensure proof
+        if parsed_vc["proof"].is_null() {
+            parsed_vc["proof"] = create_proof(&parsed_vc, &private_key, &now).unwrap();
+        }
 
-        let proof = "magic";
-        parsed_vc["proof"] = Value::from(proof);
-
-        // vc withproof
+        // final VC document
         let vc_str = String::from(format!("{}", &parsed_vc));
+        debug!("final VC document: {}", vc_str);
 
         Ok(vc_str)
     }
@@ -278,6 +291,64 @@ async fn get_vc_status_valid(vc_status_id: &str) -> Result<bool, Box<dyn std::er
     }
 }
 
+/// Creates proof for VC document
+///
+/// # Arguments
+///
+/// * `vc` - vc to create proof for
+/// * `private_key` - private key to create proof as 32B hex string
+/// * `now` - timestamp of issuing, may have also been used to determine `validFrom` in VC
+fn create_proof(
+    vc: &Value,
+    private_key: &str,
+    now: &DateTime<Utc>
+) -> Result<Value, Box<dyn std::error::Error>> {
+    // create to-be-signed jwt
+    let header_str = r#"{"typ":"JWT","alg":"ES256K-R"}"#;
+    let header_encoded = BASE64URL.encode(header_str.as_bytes());
+    debug!("header base64 url encdoded: {:?}", &header_encoded);
+
+    // build data object and hash
+    let mut data_json: Value = serde_json::from_str("{}").unwrap();
+    let vc_clone: Value = serde_json::from_str(&format!("{}", &vc)).unwrap();
+    data_json["iat"] = Value::from(now.timestamp());
+    data_json["vc"] = vc_clone;
+    data_json["iss"] = Value::from(vc["issuer"].as_str().unwrap());
+    let data_encoded = BASE64URL.encode(format!("{}", &data_json).as_bytes());
+    debug!("data base64 url encdoded: {:?}", &data_encoded);
+
+    // create hash of data (including header)
+    let header_and_data = format!("{}.{}", header_encoded, data_encoded);
+    let mut hasher = Sha256::new();
+    hasher.input(&header_and_data);
+    let hash = hasher.result();
+    debug!("header_and_data hash {:?}", hash);
+
+    // sign this hash
+    let hash_arr: [u8; 32] = hash.try_into().expect("slice with incorrect length");
+    let message = Message::parse(&hash_arr);
+    let mut private_key_arr = [0u8; 32];
+    hex::decode_to_slice(&private_key, &mut private_key_arr).expect("private key invalid");
+    let secret_key = SecretKey::parse(&private_key_arr)?;
+    let (sig, _): (Signature, _) = sign(&message, &secret_key);
+    let sig_base64url = BASE64URL.encode(&sig.serialize());
+    debug!("signature base64 url encdoded: {:?}", &sig_base64url);
+
+    // build proof property as serde object
+    let jws = format!("{}.{}", &header_and_data, sig_base64url);
+    let utc_now = format!("{}", now.format("%Y-%m-%dT%H:%M:%S.000Z"));
+    let proof_json_str = format!(r###"{{
+        "type": "EcdsaPublicKeySecp256k1",
+        "created": "{}",
+        "proofPurpose": "assertionMethod",
+        "verificationMethod": "{}",
+        "jws": "{}"
+    }}"###, &utc_now, &vc["issuer"].as_str().unwrap(), &jws);
+    let proof: Value = serde_json::from_str(&proof_json_str).unwrap();
+
+    Ok(proof)
+}
+
 /// Recovers Ethereum address of signer and data part of a jwt.
 ///
 /// # Arguments
@@ -302,12 +373,6 @@ fn recover_address_and_data(jwt: &str) -> Result<(String, String), Box<dyn std::
     };
     let data_string = String::from_utf8(data_decoded)?;
 
-    println!("");
-    println!("header    {}", String::from_utf8(BASE64URL.decode(header.as_bytes()).unwrap())?);
-    println!("data      {}", data_string);
-    println!("signature {}", signature);
-    println!("");
-
     // decode signature for validation
     let signature_decoded = match BASE64URL.decode(signature.as_bytes()) {
         Ok(decoded) => decoded,
@@ -323,11 +388,8 @@ fn recover_address_and_data(jwt: &str) -> Result<(String, String), Box<dyn std::
     debug!("header_and_data hash {:?}", hash);
 
     // prepare arguments for public key recovery
-    let mut hash_array = [0u8; 32];
-    for i in 0..32 {
-        hash_array[i] = hash[i];
-    }
-    let ctx_msg = Message::parse(&hash_array);
+    let hash_arr: [u8; 32] = hash.try_into().expect("header_and_data hash invalid"); 
+    let ctx_msg = Message::parse(&hash_arr);
     let mut signature_array = [0u8; 64];
     for i in 0..64 {
         signature_array[i] = signature_decoded[i];
@@ -346,21 +408,3 @@ fn recover_address_and_data(jwt: &str) -> Result<(String, String), Box<dyn std::
 
     Ok((address, data_string))
 }
-
-// fn create_proof(vc: &Value, private_key: &str) -> Result<String, Box<dyn std::error::Error>> {
-//     // header   : {"typ":"JWT","alg":"ES256K-R"}
-//     // data     : {
-//     //              "iat":1584606631,
-//     //              "vc":{"@context":["https://www.w3.org/2018/credentials/v1"],"type":["VerifiableCredential"],"issuer":{"id":"did:evan:testcore:0x0ef0e584c714564a4fc0c6c367edccb0c1cbf65f"},"credentialSubject":{"id":"did:evan:testcore:0x67ced07dd4f37aa2319bedd97d040b64888c57bc","data":[{"name":"isTrustedSupplier","value":"true"}]},"validFrom":"2020-03-19T08:30:30.536Z","id":"vc:evan:testcore:0x8b078ee6cfb208dca52bf89ab7178e0f11323f4363c1a6ad18321275e6d07fcb","credentialStatus":{"id":"https://testcore.evan.network/vc/status/vc:evan:testcore:0x8b078ee6cfb208dca52bf89ab7178e0f11323f4363c1a6ad18321275e6d07fcb","type":"evan:evanCredential"}},
-//     //              "iss":"did:evan:testcore:0x0ef0e584c714564a4fc0c6c367edccb0c1cbf65f"
-//     //            }
-//     // signature: IMPiWh1fEeVN8n7FlhFzG8bEzPafX7-H04OwLSTi4Wh7wxpanoq_4nUcsC9LlrxNALSKf8cUJUb03xir4uGBpAE
-
-//     // create to-be-signed jwt
-//     let header_str = r#"{"typ":"JWT","alg":"ES256K-R"}"#;
-//     let header_encoded = BASE64URL.encode(header_str.as_bytes());
-//     let mut data_json = serde_json::from_str("{}").unwrap();
-    
-
-//     Ok("magic")
-// }
