@@ -3,6 +3,7 @@
 ## Next Version
 
 ### Features
+- add creation of VCs
 
 ### Fixes
 

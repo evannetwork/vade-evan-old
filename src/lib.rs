@@ -51,6 +51,116 @@
 //! - validating VCs, which will
 //!   - check `proof` (if attached)
 //!   - check `credentialStatus` online (if attached)
+//! - creating VCs
+//!
+//! #### Retrieving VCs
+//!
+//! Existing VCs from [evan.network] can be retrieved with vade's [`get_vc_document] function:
+//!
+//! ```rust
+//! let vcr = RustVcResolverEvan::new();
+//! let mut vade = Vade::new();
+//! vade.register_vc_resolver(Box::from(vcr));
+//!
+//! let vc = vade.get_vc_document(&EXAMPLE_VC_NAME_REMOTE).await.unwrap();
+//! ```
+//!
+//! Result is returned as a JSON `String` and can easily be parsed with libraries like [`serde_json`] for further processing, e.g.:
+//!
+//! ```rust
+//! let parsed: Value = serde_json::from_str(&vc).unwrap();
+//! ```
+//!
+//! ##### Validating VCs
+//!
+//! Taken from our tests:
+//!
+//! ```rust
+//! // create a vc resolver with attached did resolver in a vade
+//! let vcr_didr = RustStorageCache::new();
+//! let mut vcr_vade = Vade::new();
+//! vcr_vade.register_did_resolver(Box::from(vcr_didr));
+//! // add did document to vcr's did resolver
+//! vcr_vade.set_did_document(EXAMPLE_DID, EXAMPLE_DID_DOCUMENT_STR).await?;
+//! let mut vcr = RustVcResolverEvan::new();
+//! vcr.vade = Some(Box::from(vcr_vade));
+//!
+//! // create vade to work with, attach 
+//! let mut vade = Vade::new();
+//! vade.register_vc_resolver(Box::from(vcr));
+//!
+//! // test VC document
+//! let vc_result = vade.check_vc(EXAMPLE_VC_NAME, EXAMPLE_VC_DOCUMENT_STR).await;
+//! match vc_result {
+//!     Ok(_) => (),
+//!     Err(e) => panic!(format!("{}", e)),
+//! }
+//! ```
+//!
+//! Note that the setup for the [`RustVcResolver`] instance differs a bit, as we
+//! - create a separate [`Vade`] instance
+//! - configure a [`DidResolver`] for it in this case an in-memory resolver for our test DID
+//! - register it as `vade` in our [`RustVcResolver`] instance
+//!
+//! This allows us to validate the `proof` property in our VC document.
+//!
+//!
+//! ##### Creating VCs
+//!
+//! Creating a VC currently has three requirements:
+//!
+//! - and [evan.network] identity for the VC issuer, which means, we also have
+//!   - an DID document for for the issuer of our VC
+//!   - a 64B private key as `str`, used to create the `proof` property (of course not IN the DID document ;)) 
+//!   - a way to identify this key, as the `ethereumAddress` of it is IN the DID document
+//! - an `id` for the VC - as the VCs created with `vade-evan` are currently not stored onchain, we cannot rely on automatic ID generation (`id` can currently be anything, but you should try to avoid reusing IDs to avoid overriding your documents locally)
+//!
+//! As an example take this test function:
+//!
+//! ```rust
+//! async fn vc_resolver_can_create_new_vcs() -> std::result::Result<(), Box<dyn std::error::Error>> {
+//!     // issuer of the new VC
+//!     let veri_issuer = "did:evan:testcore:0x0ef0e584c714564a4fc0c6c367edccb0c1cbf65f";
+//!     // verification method of the VC (can be considered "key id" for the key used to create proof)
+//!     let veri_method = "did:evan:testcore:0x0ef0e584c714564a4fc0c6c367edccb0c1cbf65f#key-1";
+//!     // Ethereum private key used to create proof
+//!     let veri_pkey = "01734663843202e2245e5796cb120510506343c67915eb4f9348ac0d8c2cf22a";
+//!     // sample data, `id` is required, `credentialSubject` is optional and holds tests data
+//!     let partial_vc_data =r###"
+//!     {
+//!         "id": "foo-bar-vc",
+//!         "credentialSubject": {
+//!             "foo": "bar"
+//!         }
+//!     } 
+//! "###;
+//!
+//!     let vcr = RustVcResolverEvan::new();
+//!
+//!     let vc: String = vcr.create_vc(partial_vc_data, &veri_method, &veri_pkey).await.unwrap();
+//!
+//!     let parsed: Value = serde_json::from_str(&vc).unwrap();
+//!
+//!     assert!(parsed["credentialSubject"]["foo"].as_str() == Some("bar"));
+//!     assert!(parsed["@context"].as_array().unwrap().len() == 1);
+//!     assert!(parsed["@context"].as_array().unwrap().iter().any(|v| v == VC_W3C_MANDATORY_CONTEXT));
+//!     assert!(parsed["type"].as_str() == Some(VC_DEFAULT_TYPE));
+//!     assert!(parsed["issuer"].as_str() == Some(veri_issuer));
+//!     assert!(parsed["validFrom"].as_str() != None);
+//!     assert!(parsed["proof"].as_str() != None);
+//!
+//!     Ok(())
+//! }
+//! ```
+//!
+//! Have a look at the assert block at the end of the test. Here you can see the properties, that are added automatically:
+//! -  @context
+//! -  type
+//! -  issuer
+//! -  validFrom
+//! -  proof
+//!
+//! These are added automatically if not provided in `partial_vc_data`.
 //!
 //! ### DID Resolver
 //!
@@ -58,7 +168,25 @@
 //!
 //! - retrieving DIDs
 //!
+//! #### Retrieving DIDs
+//!
+//! Fetching DIDs via [`RustDidResolver`] fetches them from [evan.network] and returns them as `str`, e.g.:
+//!
+//! ```rust
+//! let rde = RustDidResolverEvan::new();
+//! let mut vade = Vade::new();
+//! vade.register_did_resolver(Box::from(rde));
+//!
+//! let did = vade.get_did_document(&EXAMPLE_DID).await.unwrap();
+//! ```
+//!
+//! [`DidResolver`]: https://docs.rs/vade/*/vade/traits/trait.DidResolver.html
+//! [`get_vc_document`]: https://docs.rs/vade/*/vade/traits/trait.VcResolver.html#tymethod.get_vc_document
+//! [`RustDidResolver`]: https://docs.rs/vade-evan/*/vade_evan/plugin/rust_didresolver_evan/struct.RustDidResolverEvan.html
+//! [`RustVcResolver`]: https://docs.rs/vade-evan/*/vade_evan/plugin/rust_vcresolver_evan/struct.RustVcResolverEvan.html
+//! [`serde_json`]: https://docs.rs/serde_json/*/serde_json
 //! [`vade`]: https://docs.rs/vade
+//! [`Vade`]: https://docs.rs/vade/*/vade/struct.Vade.html
 //! [API documentation]: https://docs.rs/vade-evan
 //! [evan.network]: https://evan.network
 

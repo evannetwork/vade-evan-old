@@ -284,9 +284,13 @@ async fn cannot_validate_invalid_vcs() -> std::result::Result<(), Box<dyn std::e
 
 #[tokio::test]
 async fn vc_resolver_can_create_new_vcs() -> std::result::Result<(), Box<dyn std::error::Error>> {
+    // issuer of the new VC
     let veri_issuer = "did:evan:testcore:0x0ef0e584c714564a4fc0c6c367edccb0c1cbf65f";
+    // verification method of the VC (can be considered "key id" for the key used to create proof)
     let veri_method = "did:evan:testcore:0x0ef0e584c714564a4fc0c6c367edccb0c1cbf65f#key-1";
+    // Ethereum private key used to create proof
     let veri_pkey = "01734663843202e2245e5796cb120510506343c67915eb4f9348ac0d8c2cf22a";
+    // sample data, `id` is required, `credentialSubject` is optional and holds tests data
     let partial_vc_data =r###"
     {
         "id": "foo-bar-vc",
@@ -308,6 +312,7 @@ async fn vc_resolver_can_create_new_vcs() -> std::result::Result<(), Box<dyn std
     assert!(parsed["type"].as_str() == Some(VC_DEFAULT_TYPE));
     assert!(parsed["issuer"].as_str() == Some(veri_issuer));
     assert!(parsed["validFrom"].as_str() != None);
+    assert!(parsed["proof"].as_str() != None);
 
     Ok(())
 }
