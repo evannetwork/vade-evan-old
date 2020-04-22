@@ -312,7 +312,7 @@ async fn vc_resolver_can_create_new_vcs() -> std::result::Result<(), Box<dyn std
     assert!(parsed["type"].as_str() == Some(VC_DEFAULT_TYPE));
     assert!(parsed["issuer"].as_str() == Some(veri_issuer));
     assert!(parsed["validFrom"].as_str() != None);
-    assert!(parsed["proof"].as_str() != None);
+    assert!(parsed["proof"].as_object() != None);
 
     Ok(())
 }
@@ -344,6 +344,7 @@ async fn vc_resolver_can_create_new_vcs_and_validate_them(
     assert!(parsed["type"].as_str() == Some(VC_DEFAULT_TYPE));
     assert!(parsed["issuer"].as_str() == Some(veri_issuer));
     assert!(parsed["validFrom"].as_str() != None);
+    assert!(parsed["proof"].as_object() != None);
 
     // test VC document
     let vcr_didr = RustStorageCache::new();
@@ -395,6 +396,7 @@ async fn vc_resolver_can_create_new_vcs_and_fails_on_invalid_private_key(
     assert!(parsed["type"].as_str() == Some(VC_DEFAULT_TYPE));
     assert!(parsed["issuer"].as_str() == Some(veri_issuer));
     assert!(parsed["validFrom"].as_str() != None);
+    assert!(parsed["proof"].as_object() != None);
 
     // test VC document
     let vcr_didr = RustStorageCache::new();
