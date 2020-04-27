@@ -146,7 +146,7 @@ impl RustVcResolverEvan {
             parsed_vc["type"] = Value::from(VC_DEFAULT_TYPE);
         }
 
-        // if not privided, fill issuer with given `verification_methoda`, did
+        // if not privided, fill issuer with given `verification_method`, did
         if parsed_vc["issuer"].is_null() {
             let split: Vec<&str> = verification_method.split('#').collect();
             parsed_vc["issuer"] = Value::from(split[0]);
