@@ -21,51 +21,32 @@ use vade::plugin::rust_storage_cache::RustStorageCache;
 use vade_evan::plugin::rust_didresolver_evan::RustDidResolverEvan;
 use serde_json::Value;
 
-const EXAMPLE_DID: &str = "did:evan:testcore:0x96da854df34f5dcd25793b75e170b3d8c63a95ad";
+const EXAMPLE_DID: &str = "did:evan:testcore:0x0d87204c3957d73b68ae28d0af961d3c72403906";
 const EXAMPLE_DID_DOCUMENT_STR: &str = r###"
 {
-    "did": {
-        "@context": "https://w3id.org/did/v1",
-        "id": "did:evan:testcore:0x96da854df34f5dcd25793b75e170b3d8c63a95ad",
-        "publicKey": [
-            {
-                "id": "did:evan:testcore:0x96da854df34f5dcd25793b75e170b3d8c63a95ad#key-1",
-                "type": "Secp256k1VerificationKey2018",
-                "owner": "did:evan:testcore:0x96da854df34f5dcd25793b75e170b3d8c63a95ad",
-                "ethereumAddress": "0x001de828935e8c7e4cb56fe610495cae63fb2612"
-            }
-        ],
-        "authentication": [
-            "did:evan:testcore:0x96da854df34f5dcd25793b75e170b3d8c63a95ad#key-1"
-        ],
-        "created": "2020-02-17T09:14:25.915Z",
-        "updated": "2020-02-17T09:14:25.915Z",
-        "proof": {
-            "type": "EcdsaPublicKeySecp256k1",
-            "created": "2020-02-17T09:14:25.933Z",
-            "proofPurpose": "assertionMethod",
-            "verificationMethod": "did:evan:testcore:0x96da854df34f5dcd25793b75e170b3d8c63a95ad#key-1",
-            "jws": "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NkstUiJ9.eyJpYXQiOjE1ODE5MzA4NjUsImRpZERvY3VtZW50Ijp7IkBjb250ZXh0IjoiaHR0cHM6Ly93M2lkLm9yZy9kaWQvdjEiLCJpZCI6ImRpZDpldmFuOnRlc3Rjb3JlOjB4OTZkYTg1NGRmMzRmNWRjZDI1NzkzYjc1ZTE3MGIzZDhjNjNhOTVhZCIsInB1YmxpY0tleSI6W3siaWQiOiJkaWQ6ZXZhbjp0ZXN0Y29yZToweDk2ZGE4NTRkZjM0ZjVkY2QyNTc5M2I3NWUxNzBiM2Q4YzYzYTk1YWQja2V5LTEiLCJ0eXBlIjoiU2VjcDI1NmsxVmVyaWZpY2F0aW9uS2V5MjAxOCIsIm93bmVyIjoiZGlkOmV2YW46dGVzdGNvcmU6MHg5NmRhODU0ZGYzNGY1ZGNkMjU3OTNiNzVlMTcwYjNkOGM2M2E5NWFkIiwiZXRoZXJldW1BZGRyZXNzIjoiMHgwMDFkZTgyODkzNWU4YzdlNGNiNTZmZTYxMDQ5NWNhZTYzZmIyNjEyIn1dLCJhdXRoZW50aWNhdGlvbiI6WyJkaWQ6ZXZhbjp0ZXN0Y29yZToweDk2ZGE4NTRkZjM0ZjVkY2QyNTc5M2I3NWUxNzBiM2Q4YzYzYTk1YWQja2V5LTEiXSwiY3JlYXRlZCI6IjIwMjAtMDItMTdUMDk6MTQ6MjUuOTE1WiIsInVwZGF0ZWQiOiIyMDIwLTAyLTE3VDA5OjE0OjI1LjkxNVoifSwiaXNzIjoiZGlkOmV2YW46dGVzdGNvcmU6MHg5NmRhODU0ZGYzNGY1ZGNkMjU3OTNiNzVlMTcwYjNkOGM2M2E5NWFkIn0.yBMpk9cQikhHv3MEEXr4w3po9AZWLRtqhbW7iQ0L0e0Ylxkg5R4z9niOXuVpwueVjNP-tCNOa5HBCIJqnDts6wA"
-        }
-    },
-    "status": "success",
-    "serverInformation": {
-        "serverName": "edge-server",
-        "apiVersion": "1.2.1",
-        "requestDuration": 49,
-        "currentTime": 1584086999487
-    },
-    "requesterInformation": {
-        "id": "d928491de5455f96f54a26fc9e6f65ff94f39653-2c093c7f-85be-4bbf-bf02-46a1a1745308",
-        "fingerprint": "d928491de5455f96f54a26fc9e6f65ff94f39653",
-        "messageId": "2c093c7f-85be-4bbf-bf02-46a1a1745308",
-        "remoteIP": "79.232.30.142",
-        "receivedParams": {
-        "did": "did:evan:testcore:0x96da854df34f5dcd25793b75e170b3d8c63a95ad",
-        "action": "smart-agents/smart-agent-did-resolver/did/get/:did"
-        }
+    "@context": "https://w3id.org/did/v1",
+    "id": "did:evan:testcore:0x0d87204c3957d73b68ae28d0af961d3c72403906",
+    "publicKey": [
+      {
+        "id": "did:evan:testcore:0x0d87204c3957d73b68ae28d0af961d3c72403906#key-1",
+        "type": "Secp256k1VerificationKey2018",
+        "controller": "did:evan:testcore:0x0d87204c3957d73b68ae28d0af961d3c72403906",
+        "ethereumAddress": "0xcd5e1dbb5552c2baa1943e6b5f66d22107e9c05c"
+      }
+    ],
+    "authentication": [
+      "did:evan:testcore:0x0d87204c3957d73b68ae28d0af961d3c72403906#key-1"
+    ],
+    "created": "2020-04-16T06:51:48.344Z",
+    "updated": "2020-04-16T06:51:48.344Z",
+    "proof": {
+      "type": "EcdsaPublicKeySecp256k1",
+      "created": "2020-04-16T06:51:48.352Z",
+      "proofPurpose": "assertionMethod",
+      "verificationMethod": "did:evan:testcore:0x0d87204c3957d73b68ae28d0af961d3c72403906#key-1",
+      "jws": "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NkstUiJ9.eyJpYXQiOjE1ODcwMTk5MDgsImRpZERvY3VtZW50Ijp7IkBjb250ZXh0IjoiaHR0cHM6Ly93M2lkLm9yZy9kaWQvdjEiLCJpZCI6ImRpZDpldmFuOnRlc3Rjb3JlOjB4MGQ4NzIwNGMzOTU3ZDczYjY4YWUyOGQwYWY5NjFkM2M3MjQwMzkwNiIsInB1YmxpY0tleSI6W3siaWQiOiJkaWQ6ZXZhbjp0ZXN0Y29yZToweDBkODcyMDRjMzk1N2Q3M2I2OGFlMjhkMGFmOTYxZDNjNzI0MDM5MDYja2V5LTEiLCJ0eXBlIjoiU2VjcDI1NmsxVmVyaWZpY2F0aW9uS2V5MjAxOCIsImNvbnRyb2xsZXIiOiJkaWQ6ZXZhbjp0ZXN0Y29yZToweDBkODcyMDRjMzk1N2Q3M2I2OGFlMjhkMGFmOTYxZDNjNzI0MDM5MDYiLCJldGhlcmV1bUFkZHJlc3MiOiIweGNkNWUxZGJiNTU1MmMyYmFhMTk0M2U2YjVmNjZkMjIxMDdlOWMwNWMifV0sImF1dGhlbnRpY2F0aW9uIjpbImRpZDpldmFuOnRlc3Rjb3JlOjB4MGQ4NzIwNGMzOTU3ZDczYjY4YWUyOGQwYWY5NjFkM2M3MjQwMzkwNiNrZXktMSJdLCJjcmVhdGVkIjoiMjAyMC0wNC0xNlQwNjo1MTo0OC4zNDRaIiwidXBkYXRlZCI6IjIwMjAtMDQtMTZUMDY6NTE6NDguMzQ0WiJ9LCJpc3MiOiJkaWQ6ZXZhbjp0ZXN0Y29yZToweDBkODcyMDRjMzk1N2Q3M2I2OGFlMjhkMGFmOTYxZDNjNzI0MDM5MDYifQ.GvsVegB_bEFi_XIde0LD2Et_kJ9qeaEw5NSS7Ye8FBqgR_am1QWsnEY2vU4tJDyjPSo_AXB6gtRDdRNXwDb3fwA"
     }
-}
+  }
 "###;
 
 #[tokio::test]

@@ -15,20 +15,28 @@
 */
 
 use async_trait::async_trait;
+use chrono::{ DateTime, Utc };
 use data_encoding::BASE64URL;
 use regex::Regex;
 use reqwest;
-use secp256k1::{Message, Signature, recover, RecoveryId};
-use serde::{Serialize, Deserialize};
+use secp256k1::{Message, Signature, recover, RecoveryId, SecretKey, sign};
 use serde_json::Value;
+use serde::{Serialize, Deserialize};
 use sha2::{Digest, Sha256};
 use sha3::Keccak256;
 use simple_error::SimpleError;
+use std::convert::TryInto;
+use std::str;
 use vade::traits::VcResolver;
 use vade::Vade;
-use std::str;
 
-const JWT_REGEX: &'static str = r#"^\{"iat":[^,]+,"vc":(.*),"iss":"[^"]+?"\}$"#;
+/// mandatory context, will be inserted automatically if not provided for
+/// [create_vc](crate::plugin::rust_rust_vcresolver_evan::RustVcResolverEvan#method.create_vc)
+pub const VC_W3C_MANDATORY_CONTEXT: &'static str = "https://www.w3.org/2018/credentials/v1";
+/// default type, will be used if no type is provided for
+/// [create_vc](crate::plugin::rust_rust_vcresolver_evan::RustVcResolverEvan#method.create_vc)
+pub const VC_DEFAULT_TYPE: &'static str = "VerifiableCredential";
+const JWT_REGEX: &'static str = r#"^\s*\{"iat":[^,]+,"vc":(.*),"iss":"[^"]+?"\}\s*$"#;
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug)]
@@ -98,6 +106,69 @@ impl RustVcResolverEvan {
             _ => Err(Box::from(format!("multiple matches found for key {} in DID {}", key_from_did, did))),
         }
     }
+
+    /// Creates a new VC document. Will automatically add manadatory fields and proof.
+    /// Automatically adds the following fields if missing:
+    /// - @context
+    /// - type
+    /// - issuer
+    /// - validFrom
+    /// - proof
+    ///
+    /// # Arguments
+    ///
+    /// * `vc_data` - partial or full VC
+    /// * `verification_method` - issuer of VC
+    /// * `private_key` - private key to create proof as 32B hex string
+    pub async fn create_vc(
+        &self,
+        vc_data: &str,
+        verification_method: &str,
+        private_key: &str
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let mut parsed_vc: Value = serde_json::from_str(&vc_data).unwrap();
+
+        // currently new VCs created here are offline, so id is mandatory
+        if parsed_vc["id"].is_null() {
+            return Err(Box::new(SimpleError::new("\"id\" is required for offline VCs")))
+        } 
+
+        // ensure proper context
+        if parsed_vc["@context"].is_null() {
+            parsed_vc["@context"] = Value::from(Vec::<&str>::new());
+        }
+        if !parsed_vc["@context"].as_array().unwrap().iter().any(|v| v == VC_W3C_MANDATORY_CONTEXT) {
+            parsed_vc["@context"].as_array_mut().unwrap().push(Value::from(VC_W3C_MANDATORY_CONTEXT));
+        }
+
+        // ensure type
+        if parsed_vc["type"].is_null() {
+            parsed_vc["type"] = Value::from(VC_DEFAULT_TYPE);
+        }
+
+        // if not privided, fill issuer with given `verification_method`, did
+        if parsed_vc["issuer"].is_null() {
+            let split: Vec<&str> = verification_method.split('#').collect();
+            parsed_vc["issuer"] = Value::from(split[0]);
+        }
+
+        // ensure validFrom timestamp
+        let now: DateTime<Utc> = Utc::now();
+        if parsed_vc["validFrom"].is_null() {
+            parsed_vc["validFrom"] = Value::from(format!("{}", now.format("%Y-%m-%dT%H:%M:%S.000Z")));
+        }
+
+        // ensure proof
+        if parsed_vc["proof"].is_null() {
+            parsed_vc["proof"] = create_proof(&parsed_vc, &verification_method, &private_key, &now).unwrap();
+        }
+
+        // final VC document
+        let vc_str = String::from(format!("{}", &parsed_vc));
+        debug!("final VC document: {}", vc_str);
+
+        Ok(vc_str)
+    }
 }
 
 
@@ -149,6 +220,7 @@ impl VcResolver for RustVcResolverEvan {
             debug!("recovered address: {}", &address);
             debug!("key to use for verification: {}", &key_to_use);
             let key_from_did = self.get_key_from_did(key_to_use).await?;
+            debug!("key from did: {}", &key_from_did);
             if address != key_from_did {
                 return Err(Box::from(format!("could not verify signature of \"{}\"", vc_id)));
             }
@@ -220,6 +292,76 @@ async fn get_vc_status_valid(vc_status_id: &str) -> Result<bool, Box<dyn std::er
     }
 }
 
+/// Creates proof for VC document
+///
+/// # Arguments
+///
+/// * `vc` - vc to create proof for
+/// * `verification_method` - issuer of VC
+/// * `private_key` - private key to create proof as 32B hex string
+/// * `now` - timestamp of issuing, may have also been used to determine `validFrom` in VC
+fn create_proof(
+    vc: &Value,
+    verification_method: &str,
+    private_key: &str,
+    now: &DateTime<Utc>
+) -> Result<Value, Box<dyn std::error::Error>> {
+    // create to-be-signed jwt
+    let header_str = r#"{"typ":"JWT","alg":"ES256K-R"}"#;
+    let padded = BASE64URL.encode(header_str.as_bytes());
+    let header_encoded = padded.trim_end_matches('=');
+    debug!("header base64 url encdoded: {:?}", &header_encoded);
+
+    // build data object and hash
+    let mut data_json: Value = serde_json::from_str("{}").unwrap();
+    let vc_clone: Value = serde_json::from_str(&format!("{}", &vc)).unwrap();
+    data_json["iat"] = Value::from(now.timestamp());
+    data_json["vc"] = vc_clone;
+    data_json["iss"] = Value::from(vc["issuer"].as_str().unwrap());
+    let padded = BASE64URL.encode(format!("{}", &data_json).as_bytes());
+    let data_encoded = padded.trim_end_matches('=');
+    debug!("data base64 url encdoded: {:?}", &data_encoded);
+
+    // create hash of data (including header)
+    let header_and_data = format!("{}.{}", header_encoded, data_encoded);
+    let mut hasher = Sha256::new();
+    hasher.input(&header_and_data);
+    let hash = hasher.result();
+    debug!("header_and_data hash {:?}", hash);
+
+    // sign this hash
+    let hash_arr: [u8; 32] = hash.try_into().expect("slice with incorrect length");
+    let message = Message::parse(&hash_arr);
+    let mut private_key_arr = [0u8; 32];
+    hex::decode_to_slice(&private_key, &mut private_key_arr).expect("private key invalid");
+    let secret_key = SecretKey::parse(&private_key_arr)?;
+    let (sig, rec): (Signature, _) = sign(&message, &secret_key);
+    // sig to bytes (len 64), append recoveryid
+    let signature_arr = &sig.serialize();
+    let mut sig_and_rec: [u8; 65] = [0; 65];
+    for i in 0..64 {
+        sig_and_rec[i] = signature_arr[i];
+    }
+    sig_and_rec[64] = rec.serialize();
+    let padded = BASE64URL.encode(&sig_and_rec);
+    let sig_base64url = padded.trim_end_matches('=');
+    debug!("signature base64 url encdoded: {:?}", &sig_base64url);
+
+    // build proof property as serde object
+    let jws = format!("{}.{}", &header_and_data, sig_base64url);
+    let utc_now = format!("{}", now.format("%Y-%m-%dT%H:%M:%S.000Z"));
+    let proof_json_str = format!(r###"{{
+        "type": "EcdsaPublicKeySecp256k1",
+        "created": "{}",
+        "proofPurpose": "assertionMethod",
+        "verificationMethod": "{}",
+        "jws": "{}"
+    }}"###, &utc_now, &verification_method, &jws);
+    let proof: Value = serde_json::from_str(&proof_json_str).unwrap();
+
+    Ok(proof)
+}
+
 /// Recovers Ethereum address of signer and data part of a jwt.
 ///
 /// # Arguments
@@ -247,7 +389,10 @@ fn recover_address_and_data(jwt: &str) -> Result<(String, String), Box<dyn std::
     // decode signature for validation
     let signature_decoded = match BASE64URL.decode(signature.as_bytes()) {
         Ok(decoded) => decoded,
-        Err(_) => BASE64URL.decode(format!("{}=", signature).as_bytes()).unwrap(),
+        Err(_) => match BASE64URL.decode(format!("{}=", signature).as_bytes()) {
+            Ok(decoded) => decoded,
+            Err(_) => BASE64URL.decode(format!("{}==", signature).as_bytes()).unwrap(),
+        },
     };
     debug!("signature_decoded {:?}", &signature_decoded);
     debug!("signature_decoded.len {:?}", signature_decoded.len());
@@ -259,17 +404,16 @@ fn recover_address_and_data(jwt: &str) -> Result<(String, String), Box<dyn std::
     debug!("header_and_data hash {:?}", hash);
 
     // prepare arguments for public key recovery
-    let mut hash_array = [0u8; 32];
-    for i in 0..32 {
-        hash_array[i] = hash[i];
-    }
-    let ctx_msg = Message::parse(&hash_array);
+    let hash_arr: [u8; 32] = hash.try_into().expect("header_and_data hash invalid"); 
+    let ctx_msg = Message::parse(&hash_arr);
     let mut signature_array = [0u8; 64];
     for i in 0..64 {
         signature_array[i] = signature_decoded[i];
     }
+    // slice signature and recovery for recovery
+    debug!("recovery id: {}", signature_decoded[64]);
     let ctx_sig = Signature::parse(&signature_array);
-    let recovery_id = RecoveryId::parse(1).unwrap();
+    let recovery_id = RecoveryId::parse(signature_decoded[64]).unwrap();
 
     // recover public key, build ethereum address from it
     let recovered_key = recover(&ctx_msg, &ctx_sig, &recovery_id).unwrap();
