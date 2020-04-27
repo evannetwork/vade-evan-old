@@ -89,7 +89,7 @@ async fn example() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let mut vcr = RustVcResolverEvan::new();
     vcr.vade = Some(Box::from(vcr_vade));
 
-    // create vade to work with, attach 
+    // create vade to work with, attach vc resolver
     let mut vade = Vade::new();
     vade.register_vc_resolver(Box::from(vcr));
 
