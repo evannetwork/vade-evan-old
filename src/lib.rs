@@ -88,7 +88,7 @@
 //! use vade_evan::plugin::rust_vcresolver_evan::RustVcResolverEvan;
 //!
 //! async fn example() -> std::result::Result<(), Box<dyn std::error::Error>> {
-//!     // create a vc resolver with attached did resolver in a vade
+//!     // create a vc resolver with attached did resolver in a vade instance
 //!     let vcr_didr = RustStorageCache::new();
 //!     let mut vcr_vade = Vade::new();
 //!     vcr_vade.register_did_resolver(Box::from(vcr_didr));
@@ -99,7 +99,7 @@
 //!     let mut vcr = RustVcResolverEvan::new();
 //!     vcr.vade = Some(Box::from(vcr_vade));
 //!
-//!     // create vade to work with, attach 
+//!     // create vade to work with, attach vc resolver
 //!     let mut vade = Vade::new();
 //!     vade.register_vc_resolver(Box::from(vcr));
 //!
@@ -127,8 +127,8 @@
 //!
 //! Creating a VC currently has three requirements:
 //!
-//! - and [evan.network] identity for the VC issuer, which means, we also have
-//!   - an DID document for for the issuer of our VC
+//! - an [evan.network] identity for the VC issuer, which means, we also have
+//!   - a DID document for the issuer of our VC
 //!   - a 64B private key as `str`, used to create the `proof` property (of course not IN the DID document ;)) 
 //!   - a way to identify this key, as the `ethereumAddress` of it is IN the DID document
 //! - an `id` for the VC - as the VCs created with `vade-evan` are currently not stored onchain, we cannot rely on automatic ID generation (`id` can currently be anything, but you should try to avoid reusing IDs to avoid overriding your documents locally)
@@ -158,7 +158,7 @@
 //!             "foo": "bar"
 //!         }
 //!     } 
-//! "###;
+//!     "###;
 //!
 //!     let vcr = RustVcResolverEvan::new();
 //!

@@ -298,7 +298,7 @@ async fn vc_resolver_can_create_new_vcs() -> std::result::Result<(), Box<dyn std
             "foo": "bar"
         }
     } 
-"###;
+    "###;
 
     let vcr = RustVcResolverEvan::new();
 
