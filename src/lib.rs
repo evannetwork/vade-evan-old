@@ -55,7 +55,7 @@
 //!
 //! #### Retrieving VCs
 //!
-//! Existing VCs from [evan.network] can be retrieved with vade's [`get_vc_document] function:
+//! Existing VCs from [evan.network] can be retrieved with vade's [`get_vc_document`] function:
 //!
 //! ```rust
 //! use vade::Vade;
