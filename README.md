@@ -195,6 +195,7 @@ let mut vade = Vade::new();
 vade.register_did_resolver(Box::from(rde));
 
 let did = vade.get_did_document("did:evan:testcore:0x0ef0e584c714564a4fc0c6c367edccb0c1cbf65f").await.unwrap();
+```
 
 [`DidResolver`]: https://docs.rs/vade/*/vade/traits/trait.DidResolver.html
 [`get_vc_document`]: https://docs.rs/vade/*/vade/traits/trait.VcResolver.html#tymethod.get_vc_document
