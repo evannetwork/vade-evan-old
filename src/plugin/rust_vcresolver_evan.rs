@@ -172,7 +172,7 @@ impl RustVcResolverEvan {
 }
 
 
-#[async_trait]
+#[async_trait(?Send)]
 impl VcResolver for RustVcResolverEvan {
     /// Checks given Vc document.
     /// A Vc document is considered as valid if returning ().
