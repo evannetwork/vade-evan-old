@@ -31,7 +31,7 @@ impl RustDidResolverEvan {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl DidResolver for RustDidResolverEvan {
     /// Checks given DID document.
     /// A DID document is considered as valid if returning ().
