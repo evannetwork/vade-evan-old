@@ -3,11 +3,17 @@
 ## Next Version
 
 ### Features
-- add creation of VCs
 
 ### Fixes
 
 ### Deprecations
+
+## Version 0.0.5
+
+### Features
+
+- add creation of VCs
+- add support for wasm compilation
 
 ## Version 0.0.4
 
