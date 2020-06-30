@@ -4,6 +4,10 @@
 [![Documentation](https://docs.rs/vade-evan/badge.svg)](https://docs.rs/vade-evan)
 [![Apache-2 licensed](https://img.shields.io/crates/l/vade-evan.svg)](./LICENSE.txt)
 
+**:warning: This plugin was designed for [vade 0.0.6](https://crates.io/crates/vade/0.0.6) :warning:**
+
+A plugin version, that supports [vade >= 0.0.7](https://crates.io/crates/vade/0.0.7) will be released soon, but for now use this plugin only with [vade 0.0.6](https://crates.io/crates/vade/0.0.6).
+
 ## About
 
 This project is providing two plugins to be used with the [`vade`] library. These plugins offer functionalities to work with VCs and DIDs on [evan.network].
